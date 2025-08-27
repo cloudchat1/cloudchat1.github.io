@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatroom</title>
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts - Chakra Petch -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'chakra': ['Chakra Petch', 'monospace']
+                    },
+                    colors: {
+                        'dark': {
+                            '900': '#0a0a0a',
+                            '800': '#1a1a1a',
+                            '700': '#2a2a2a',
+                            '600': '#3a3a3a',
+                            '500': '#4a4a4a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Chakra Petch', monospace;
+        }
+        
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-appear {
+            animation: messageAppear 0.3s ease-out;
+        }
+        
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateX(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+        
+        /* Scrollbar */
+        #messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #messages-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        #messages-container::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 3px;
+        }
+        
+        #messages-container::-webkit-scrollbar-thumb:hover {
+            background: #6a6a6a;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-chakra min-h-screen">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-md w-full">
+            <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 shadow-xl">
+                <!-- Login/Register Toggle -->
+                <div class="mb-6">
+                    <div class="flex bg-dark-700 rounded-lg p-1">
+                        <button id="login-tab" 
+                                class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all text-white bg-blue-600">
+                            Login
+                        </button>
+                        <button id="register-tab" 
+                                class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all text-gray-300 hover:text-white">
+                            Register
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <input type="text" 
+                               id="login-username"
+                               placeholder="Username" 
+                               required
+                               class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                    <div>
+                        <input type="password" 
+                               id="login-password"
+                               placeholder="Password" 
+                               required
+                               class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                    <button type="submit" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                        Login
+                    </button>
+                </form>
+
+                <!-- Register Form (Hidden by default) -->
+                <form id="register-form" class="space-y-4 hidden">
+                    <div>
+                        <input type="text" 
+                               id="register-username"
+                               placeholder="Username (min 3 chars)" 
+                               required
+                               minlength="3"
+                               class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
+                    </div>
+                    <div>
+                        <input type="password" 
+                               id="register-password"
+                               placeholder="Password (min 6 chars)" 
+                               required
+                               minlength="6"
+                               class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
+                    </div>
+                    <button type="submit" 
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                        Create Account
+                    </button>
+                </form>
+
+                <!-- Guest Login -->
+                <div id="guest-section" class="mt-6 pt-6 border-t border-dark-600">
+                    <button id="guest-btn" 
+                           class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105">
+                        Sign in as Guest
+                    </button>
+                </div>
+                
+                <!-- Error Messages -->
+                <div id="auth-error" class="mt-4 p-3 bg-red-600 text-white rounded-lg hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Screen -->
+    <div id="chat-screen" class="min-h-screen flex flex-col hidden">
+        <!-- User info and logout at top -->
+        <div class="bg-dark-800 border-b border-dark-600 px-6 py-3 flex justify-between items-center">
+            <span id="user-display" class="text-gray-300"></span>
+            <button id="logout-btn" 
+                   class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors text-sm">
+                Logout
+            </button>
+        </div>
+
+        <div class="flex-1 flex flex-col">
+            <!-- Messages Container -->
+            <div id="messages-container" class="flex-1 overflow-y-auto bg-dark-900 p-4 space-y-3">
+                <!-- Empty state -->
+                <div id="empty-state" class="text-center text-gray-400 py-8">
+                    <div class="text-4xl mb-4">💬</div>
+                    <p>No messages yet. Be the first to say hello!</p>
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="bg-dark-800 border-t border-dark-600 p-4">
+                <form id="message-form" class="flex space-x-3">
+                    <div class="flex-1">
+                        <input type="text" 
+                               id="message-input" 
+                               placeholder="Type your message..." 
+                               maxlength="500"
+                               class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               autocomplete="off">
+                    </div>
+                    <button type="submit" 
+                            id="send-button"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-dark-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="send-text">Send</span>
+                        <span id="send-loading" class="hidden">
+                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle>
+                                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" class="opacity-75"></path>
+                            </svg>
+                        </span>
+                    </button>
+                </form>
+                
+                <!-- Character count -->
+                <div class="mt-2 text-right">
+                    <span id="char-count" class="text-xs text-gray-400">0/500</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Change this URL to your API endpoint
+        const API_BASE_URL = 'http://chat.nighthawk.work/api';
+        
+        // Application state
+        let currentUser = null;
+        let lastMessageId = 0;
+        let pollInterval = null;
+        let config = { guest_login_enabled: true };
+
+        // DOM elements
+        const authScreen = document.getElementById('auth-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const guestSection = document.getElementById('guest-section');
+        const guestBtn = document.getElementById('guest-btn');
+        const authError = document.getElementById('auth-error');
+        const userDisplay = document.getElementById('user-display');
+        const logoutBtn = document.getElementById('logout-btn');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const sendText = document.getElementById('send-text');
+        const sendLoading = document.getElementById('send-loading');
+        const charCount = document.getElementById('char-count');
+        const emptyState = document.getElementById('empty-state');
+
+        // Utility functions
+        function showError(message) {
+            authError.textContent = message;
+            authError.classList.remove('hidden');
+            setTimeout(() => authError.classList.add('hidden'), 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+            });
+        }
+
+        function updateCharCount() {
+            const length = messageInput.value.length;
+            charCount.textContent = `${length}/500`;
+            
+            if (length > 450) {
+                charCount.className = 'text-xs text-red-400';
+            } else if (length > 400) {
+                charCount.className = 'text-xs text-yellow-400';
+            } else {
+                charCount.className = 'text-xs text-gray-400';
+            }
+        }
+
+        function setLoading(loading) {
+            sendButton.disabled = loading;
+            messageInput.disabled = loading;
+            
+            if (loading) {
+                sendText.classList.add('hidden');
+                sendLoading.classList.remove('hidden');
+            } else {
+                sendText.classList.remove('hidden');
+                sendLoading.classList.add('hidden');
+            }
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // API functions
+        async function apiRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API request failed:', error);
+                throw error;
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const data = await apiRequest('/config');
+                config = data;
+                
+                if (!config.guest_login_enabled) {
+                    guestSection.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to load config:', error);
+            }
+        }
+
+        async function login(username, password) {
+            const data = await apiRequest('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            return data.user;
+        }
+
+        async function register(username, password) {
+            const data = await apiRequest('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            return data.user;
+        }
+
+        async function guestLogin() {
+            const data = await apiRequest('/auth/guest', {
+                method: 'POST'
+            });
+            return data.user;
+        }
+
+        async function sendMessage(content) {
+            const data = await apiRequest('/messages', {
+                method: 'POST',
+                body: JSON.stringify({
+                    content,
+                    user_id: currentUser.id,
+                    is_guest: currentUser.is_guest || false
+                })
+            });
+            return data.message;
+        }
+
+        async function fetchMessages() {
+            const data = await apiRequest(`/messages?last_id=${lastMessageId}`);
+            return data.messages;
+        }
+
+        async function fetchRecentMessages() {
+            const data = await apiRequest('/messages/recent');
+            return data.messages;
+        }
+
+        // Message display functions
+        function createMessageElement(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message-item fade-in';
+            messageDiv.dataset.messageId = message.id;
+            
+            const isGuest = message.is_guest;
+            const avatarChar = isGuest ? 'G' : (message.username.length > 0 ? message.username[0].toUpperCase() : 'U');
+            const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
+            
+            messageDiv.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">
+                            ${avatarChar}
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="font-medium text-white">
+                                ${escapeHtml(message.display_name)}
+                            </span>
+                            <span class="text-xs text-gray-400">
+                                ${formatTime(message.timestamp)}
+                            </span>
+                        </div>
+                        <div class="text-gray-300 break-words">
+                            ${escapeHtml(message.content)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return messageDiv;
+        }
+
+        function addMessage(message) {
+            // Check if message already exists
+            if (document.querySelector(`[data-message-id="${message.id}"]`)) {
+                return;
+            }
+            
+            // Hide empty state
+            emptyState.classList.add('hidden');
+            
+            const messageElement = createMessageElement(message);
+            messagesContainer.appendChild(messageElement);
+            
+            // Trigger animation
+            setTimeout(() => {
+                messageElement.classList.add('message-appear');
+            }, 10);
+            
+            // Update last message ID
+            lastMessageId = Math.max(lastMessageId, message.id);
+            
+            scrollToBottom();
+        }
+
+        function loadMessages() {
+            fetchRecentMessages()
+                .then(messages => {
+                    if (messages.length === 0) {
+                        emptyState.classList.remove('hidden');
+                    } else {
+                        emptyState.classList.add('hidden');
+                        messages.forEach(addMessage);
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load messages:', error);
+                });
+        }
+
+        function startPolling() {
+            pollInterval = setInterval(() => {
+                fetchMessages()
+                    .then(messages => {
+                        messages.forEach(addMessage);
+                    })
+                    .catch(error => {
+                        console.error('Polling error:', error);
+                    });
+            }, 1000);
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // Auth functions
+        function showAuthScreen() {
+            authScreen.classList.remove('hidden');
+            chatScreen.classList.add('hidden');
+            currentUser = null;
+            stopPolling();
+        }
+
+        function showChatScreen(user) {
+            currentUser = user;
+            authScreen.classList.add('hidden');
+            chatScreen.classList.remove('hidden');
+            
+            // Update user display
+            if (user.is_guest) {
+                userDisplay.textContent = '[guest]';
+            } else {
+                userDisplay.textContent = `[${user.username}]`;
+            }
+            
+            // Load messages and start polling
+            loadMessages();
+            startPolling();
+            
+            // Focus message input
+            messageInput.focus();
+        }
+
+        // Event listeners
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('bg-blue-600', 'text-white');
+            loginTab.classList.remove('text-gray-300');
+            registerTab.classList.remove('bg-green-600', 'text-white');
+            registerTab.classList.add('text-gray-300');
+            
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+        });
+
+        registerTab.addEventListener('click', () => {
+            registerTab.classList.add('bg-green-600', 'text-white');
+            registerTab.classList.remove('text-gray-300');
+            loginTab.classList.remove('bg-blue-600', 'text-white');
+            loginTab.classList.add('text-gray-300');
+            
+            registerForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const user = await login(username, password);
+                showChatScreen(user);
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value.trim();
+            const password = document.getElementById('register-password').value;
+            
+            try {
+                const user = await register(username, password);
+                showChatScreen(user);
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        guestBtn.addEventListener('click', async () => {
+            try {
+                const user = await guestLogin();
+                showChatScreen(user);
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            showAuthScreen();
+        });
+
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const content = messageInput.value.trim();
+            if (!content) return;
+            
+            setLoading(true);
+            
+            try {
+                const message = await sendMessage(content);
+                messageInput.value = '';
+                updateCharCount();
+                addMessage(message);
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                showError('Failed to send message');
+            } finally {
+                setLoading(false);
+                messageInput.focus();
+            }
+        });
+
+        messageInput.addEventListener('input', updateCharCount);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                messageForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            }
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (currentUser) {
+                if (document.hidden) {
+                    stopPolling();
+                } else {
+                    startPolling();
+                }
+            }
+        });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            updateCharCount();
+        });
+    </script>
+</body>
+</html>
