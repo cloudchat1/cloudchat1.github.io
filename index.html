@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatroom</title>
-    
+
     <!-- TailwindCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Google Fonts - Chakra Petch -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
-    
+
     <script>
         tailwind.config = {
             theme: {
@@ -33,17 +33,16 @@
             }
         }
     </script>
-    
+
     <style>
         body {
             font-family: 'Chakra Petch', monospace;
         }
-        
-        /* Animations */
+
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
-        
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -54,11 +53,11 @@
                 transform: translateY(0);
             }
         }
-        
+
         .message-appear {
             animation: messageAppear 0.3s ease-out;
         }
-        
+
         @keyframes messageAppear {
             from {
                 opacity: 0;
@@ -69,25 +68,24 @@
                 transform: translateX(0) scale(1);
             }
         }
-        
-        /* Scrollbar */
+
         #messages-container::-webkit-scrollbar {
             width: 6px;
         }
-        
+
         #messages-container::-webkit-scrollbar-track {
             background: #1a1a1a;
         }
-        
+
         #messages-container::-webkit-scrollbar-thumb {
             background: #4a4a4a;
             border-radius: 3px;
         }
-        
+
         #messages-container::-webkit-scrollbar-thumb:hover {
             background: #6a6a6a;
         }
-        
+
         .hidden {
             display: none !important;
         }
@@ -165,7 +163,7 @@
                         Sign in as Guest
                     </button>
                 </div>
-                
+
                 <!-- Error Messages -->
                 <div id="auth-error" class="mt-4 p-3 bg-red-600 text-white rounded-lg hidden"></div>
             </div>
@@ -216,7 +214,7 @@
                         </span>
                     </button>
                 </form>
-                
+
                 <!-- Character count -->
                 <div class="mt-2 text-right">
                     <span id="char-count" class="text-xs text-gray-400">0/500</span>
@@ -226,16 +224,14 @@
     </div>
 
     <script>
-        // Configuration - Change this URL to your API endpoint
+
         const API_BASE_URL = 'https://chat.nighthawk.work/api';
-        
-        // Application state
+
         let currentUser = null;
         let lastMessageId = 0;
         let pollInterval = null;
         let config = { guest_login_enabled: true };
 
-        // DOM elements
         const authScreen = document.getElementById('auth-screen');
         const chatScreen = document.getElementById('chat-screen');
         const loginTab = document.getElementById('login-tab');
@@ -256,7 +252,6 @@
         const charCount = document.getElementById('char-count');
         const emptyState = document.getElementById('empty-state');
 
-        // Utility functions
         function showError(message) {
             authError.textContent = message;
             authError.classList.remove('hidden');
@@ -281,7 +276,7 @@
         function updateCharCount() {
             const length = messageInput.value.length;
             charCount.textContent = `${length}/500`;
-            
+
             if (length > 450) {
                 charCount.className = 'text-xs text-red-400';
             } else if (length > 400) {
@@ -294,7 +289,7 @@
         function setLoading(loading) {
             sendButton.disabled = loading;
             messageInput.disabled = loading;
-            
+
             if (loading) {
                 sendText.classList.add('hidden');
                 sendLoading.classList.remove('hidden');
@@ -308,7 +303,6 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // API functions
         async function apiRequest(endpoint, options = {}) {
             try {
                 const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -319,13 +313,13 @@
                     },
                     ...options
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (!response.ok) {
                     throw new Error(data.error || 'Request failed');
                 }
-                
+
                 return data;
             } catch (error) {
                 console.error('API request failed:', error);
@@ -337,7 +331,7 @@
             try {
                 const data = await apiRequest('/config');
                 config = data;
-                
+
                 if (!config.guest_login_enabled) {
                     guestSection.classList.add('hidden');
                 }
@@ -391,16 +385,15 @@
             return data.messages;
         }
 
-        // Message display functions
         function createMessageElement(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message-item fade-in';
             messageDiv.dataset.messageId = message.id;
-            
+
             const isGuest = message.is_guest;
             const avatarChar = isGuest ? 'G' : (message.username.length > 0 ? message.username[0].toUpperCase() : 'U');
             const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
-            
+
             messageDiv.innerHTML = `
                 <div class="flex items-start space-x-3">
                     <div class="flex-shrink-0">
@@ -423,30 +416,27 @@
                     </div>
                 </div>
             `;
-            
+
             return messageDiv;
         }
 
         function addMessage(message) {
-            // Check if message already exists
+
             if (document.querySelector(`[data-message-id="${message.id}"]`)) {
                 return;
             }
-            
-            // Hide empty state
+
             emptyState.classList.add('hidden');
-            
+
             const messageElement = createMessageElement(message);
             messagesContainer.appendChild(messageElement);
-            
-            // Trigger animation
+
             setTimeout(() => {
                 messageElement.classList.add('message-appear');
             }, 10);
-            
-            // Update last message ID
+
             lastMessageId = Math.max(lastMessageId, message.id);
-            
+
             scrollToBottom();
         }
 
@@ -484,7 +474,6 @@
             }
         }
 
-        // Auth functions
         function showAuthScreen() {
             authScreen.classList.remove('hidden');
             chatScreen.classList.add('hidden');
@@ -496,29 +485,25 @@
             currentUser = user;
             authScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
-            
-            // Update user display
+
             if (user.is_guest) {
                 userDisplay.textContent = '[guest]';
             } else {
                 userDisplay.textContent = `[${user.username}]`;
             }
-            
-            // Load messages and start polling
+
             loadMessages();
             startPolling();
-            
-            // Focus message input
+
             messageInput.focus();
         }
 
-        // Event listeners
         loginTab.addEventListener('click', () => {
             loginTab.classList.add('bg-blue-600', 'text-white');
             loginTab.classList.remove('text-gray-300');
             registerTab.classList.remove('bg-green-600', 'text-white');
             registerTab.classList.add('text-gray-300');
-            
+
             loginForm.classList.remove('hidden');
             registerForm.classList.add('hidden');
         });
@@ -528,7 +513,7 @@
             registerTab.classList.remove('text-gray-300');
             loginTab.classList.remove('bg-blue-600', 'text-white');
             loginTab.classList.add('text-gray-300');
-            
+
             registerForm.classList.remove('hidden');
             loginForm.classList.add('hidden');
         });
@@ -537,7 +522,7 @@
             e.preventDefault();
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
-            
+
             try {
                 const user = await login(username, password);
                 showChatScreen(user);
@@ -550,7 +535,7 @@
             e.preventDefault();
             const username = document.getElementById('register-username').value.trim();
             const password = document.getElementById('register-password').value;
-            
+
             try {
                 const user = await register(username, password);
                 showChatScreen(user);
@@ -574,12 +559,12 @@
 
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const content = messageInput.value.trim();
             if (!content) return;
-            
+
             setLoading(true);
-            
+
             try {
                 const message = await sendMessage(content);
                 messageInput.value = '';
@@ -602,7 +587,6 @@
             }
         });
 
-        // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (currentUser) {
                 if (document.hidden) {
@@ -613,7 +597,6 @@
             }
         });
 
-        // Initialize app
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             updateCharCount();
