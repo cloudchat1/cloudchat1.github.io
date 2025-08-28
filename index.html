@@ -19,8 +19,247 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
 
-    <!-- Local stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <style>
+        :root{
+            --dark-900: #0a0a0a;
+            --dark-800: #1a1a1a;
+            --dark-700: #2a2a2a;
+            --dark-600: #3a3a3a;
+            --dark-500: #4a4a4a;
+
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+            --blue-700: #1d4ed8;
+
+            --green-600: #16a34a;
+            --green-700: #15803d;
+
+            --red-600: #dc2626;
+            --red-700: #b91c1c;
+
+            --muted: #9ca3af;
+            --glass: rgba(255,255,255,0.03);
+
+            --radius-lg: 12px;
+            --shadow-xl: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        /* Base */
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Chakra Petch', monospace;
+            background: var(--dark-900);
+            color: #e5e7eb;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+        }
+
+        /* Cards & inputs */
+        .bg-dark-800 { background: var(--dark-800) !important; }
+        .bg-dark-700 { background: var(--dark-700) !important; }
+        .bg-dark-900 { background: var(--dark-900) !important; }
+
+        .auth-card, .bg-dark-800 {
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--dark-600);
+            box-shadow: var(--shadow-xl);
+        }
+
+        input[type="text"], input[type="password"], select, textarea {
+            background: var(--dark-700);
+            border: 1px solid var(--dark-500);
+            color: #fff;
+            border-radius: 10px;
+            transition: box-shadow .15s ease, transform .12s ease;
+        }
+
+        input::placeholder, textarea::placeholder { color: #9ca3af; }
+
+        input:focus, select:focus, button:focus, textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
+        }
+
+        /* Buttons */
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            transition: transform .12s ease, background-color .12s ease, opacity .12s ease;
+        }
+        button:active { transform: translateY(1px); }
+        button[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn .45s ease-in-out both; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .message-appear { animation: messageAppear .28s ease-out both; }
+        @keyframes messageAppear { from { opacity: 0; transform: translateX(-18px) scale(.975); } to { opacity: 1; transform: translateX(0) scale(1); } }
+
+        /* Scrollbar */
+        #messages-container { -webkit-overflow-scrolling: touch; }
+        #messages-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        #messages-container::-webkit-scrollbar-track { background: var(--dark-800); }
+        #messages-container::-webkit-scrollbar-thumb { background: var(--dark-500); border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); }
+        #messages-container::-webkit-scrollbar-thumb:hover { background: #6a6a6a; }
+
+        .hidden { display: none !important; }
+
+        .owner-shield {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; border-radius: 4px; background: var(--dark-800); color: #fff; font-size: 12px; font-weight: 600; margin-left: 6px;
+        }
+
+        .dm-badge { font-size: 11px; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.03); margin-left: 6px; }
+
+        #auth-error { display: block; font-weight: 600; }
+
+        .message-item { padding: 8px 6px; border-radius: 10px; transition: background-color .12s ease; }
+        .message-item:hover { background: rgba(255,255,255,0.015); }
+
+        /* small responsive fixes */
+        @media (max-width: 640px) {
+            .message-item { padding: 10px; border-radius: 8px; }
+        }
+
+        .text-red-400 { color: #fca5a5 !important; }
+        .text-yellow-400 { color: #facc15 !important; }
+        .text-gray-400 { color: #9ca3af !important; }
+
+        .bg-blue-600 { background: var(--blue-600) !important; }
+        .bg-blue-700 { background: var(--blue-700) !important; }
+        .bg-green-600 { background: var(--green-600) !important; }
+        .bg-green-700 { background: var(--green-700) !important; }
+        .bg-red-600 { background: var(--red-600) !important; }
+        .bg-red-700 { background: var(--red-700) !important; }
+
+        /* ============================
+           PIN Modal & Fullscreen Lock
+           ============================ */
+
+        /* Modal: centered in screen, neutral colors from theme */
+        #pin-modal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, rgba(10,10,10,0.5), rgba(10,10,10,0.35));
+            backdrop-filter: blur(6px);
+            padding: 20px;
+        }
+        #pin-modal > div {
+            background: #0a0a0a;
+            border: 1px solid rgba(255,255,255,0.03);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border-radius: 18px;
+        }
+
+        /* Full-screen lock overlay: covers entire viewport and blocks interaction */
+        #lock-overlay { display: none; }
+        #lock-overlay:not(.hidden) { display: block; position: fixed; inset: 0; z-index: 9999; }
+
+        /* overlay background (dim + blur) */
+        #lock-overlay > .absolute { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.818); backdrop-filter: blur(50px); }
+
+        /* lock panel */
+        #lock-overlay .relative > .w-full {
+            background: linear-gradient(180deg, var(--dark-800), var(--dark-700));
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+        }
+
+        /* PIN boxes container */
+        #pin-boxes {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        /* each big box */
+        .pin-box {
+            width: 4rem;
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: #fff;
+            background: #1a1a1a;
+            border: 1px solid var(--dark-600);
+            border-radius: 12px;
+            transition: transform .12s ease, background-color .12s ease, box-shadow .12s ease;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* larger on medium screens */
+        @media (min-width: 768px) {
+            .pin-box { width: 5rem; height: 5rem; font-size: 2rem; border-radius: 14px; }
+        }
+
+        /* filled state */
+        .pin-box.filled {
+            background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            box-shadow: 0 4px 18px rgba(0,0,0,0.5) inset;
+            transform: translateY(-2px);
+        }
+
+        /* shake animation on wrong PIN */
+        @keyframes shakeX {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+            100% { transform: translateX(0); }
+        }
+        #pin-boxes.shake { animation: shakeX .42s ease; }
+
+        /* hidden input (off-screen) */
+        #pin-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+        /* overlay messages */
+        #unlock-msg { color: var(--muted); margin-top: 8px; min-height: 1em; }
+
+        /* smaller screens: stack buttons */
+        @media (max-width: 420px) {
+            #pin-boxes { gap: 8px; }
+            .pin-box { width: 3.2rem; height: 3.2rem; font-size: 1.2rem; }
+        }
+
+        /* subtle focus ring for accessibility */
+        .pin-box:focus { outline: 2px solid rgba(99,102,241,0.12); outline-offset: 3px; }
+
+        /* center everything nicely on small viewports */
+        #lock-overlay .relative { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+        /* pin modal inputs */
+        #pin-setup-input, #pin-setup-confirm, #pin-dummy-input, #pin-dummy-confirm {
+            letter-spacing: 6px;
+        }
+
+        /* modal buttons rounded */
+        #pin-modal button { border-radius: 10px; }
+
+        /* small helper text */
+        #pin-setup-msg, #unlock-msg { color: #9ca3af; }
+
+        /* helpful pointer cursor for boxes */
+        .pin-box { cursor: text; }
+
+        /* Notes app inside lock overlay */
+        .notes-app .notes-sidebar { min-width: 220px; }
+        .note-item { transition: background .12s ease; }
+        .note-item:hover { background: rgba(255,255,255,0.02); }
+        .notes-app input, .notes-app textarea, .notes-app button { font-family: inherit; color: #e6e6e6; }
+        .notes-app .notes-sidebar .note-item.bg-dark-900 { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.02); }
+    </style>
 
     <script>
         tailwind.config = {
@@ -140,7 +379,7 @@
             <div class="flex items-start justify-between">
                 <div>
                     <h3 id="pin-modal-title" class="text-lg font-semibold text-white">Set / Change PIN</h3>
-                    <p class="text-sm text-gray-400 mt-1">Pick a numeric PIN (4–8 digits). The PIN is stored locally as a hash.</p>
+                    <p class="text-sm text-gray-400 mt-1">Pick a numeric PIN (4–8 digits). The PIN is stored locally as a hash. Optionally set a dummy PIN to open a local notes app.</p>
                 </div>
                 <button id="pin-modal-close" class="text-gray-400 hover:text-white" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
@@ -150,6 +389,11 @@
                     <label class="text-xs text-gray-300">PIN (numbers only)</label>
                     <input id="pin-setup-input" type="password" inputmode="numeric" pattern="\d*" maxlength="8" placeholder="Enter new PIN (4–8 digits)" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 placeholder-gray-400 text-white focus:outline-none text-lg tracking-widest">
                     <input id="pin-setup-confirm" type="password" inputmode="numeric" pattern="\d*" maxlength="8" placeholder="Confirm PIN" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 placeholder-gray-400 text-white focus:outline-none text-lg tracking-widest">
+
+                    <!-- Optional Dummy PIN -->
+                    <label class="text-xs text-gray-300 mt-2">Optional — Dummy PIN (4–8 digits)</label>
+                    <input id="pin-dummy-input" type="password" inputmode="numeric" pattern="\d*" maxlength="8" placeholder="Optional dummy PIN (e.g., for notes app)" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 placeholder-gray-400 text-white focus:outline-none text-lg tracking-widest">
+                    <input id="pin-dummy-confirm" type="password" inputmode="numeric" pattern="\d*" maxlength="8" placeholder="Confirm dummy PIN (leave blank to remove)" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 placeholder-gray-400 text-white focus:outline-none text-lg tracking-widest">
                 </div>
 
                 <div class="flex items-center justify-between mt-2">
@@ -170,7 +414,7 @@
 
         <!-- Centered lock panel (big, minimal) -->
         <div class="relative z-10 min-h-screen flex items-center justify-center p-6">
-            <div class="w-full max-w-2xl mx-auto p-8 rounded-3xl border border-dark-600 bg-gradient-to-b from-dark-800 to-dark-700 shadow-2xl text-center">
+            <div id="lock-panel" class="w-full max-w-2xl mx-auto p-8 rounded-3xl border border-dark-600 bg-gradient-to-b from-dark-800 to-dark-700 shadow-2xl text-center">
                 <div class="flex items-center justify-center mb-6">
                     <div class="w-14 h-14 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl">
                         <i class="fas fa-lock"></i>
@@ -195,7 +439,6 @@
         </div>
     </div>
 
-    <!-- ORIGINAL SCRIPT + PIN System adapted to box UI -->
     <script>
         // ========== Basic App Config & Elements ==========
         const API_BASE_URL = 'https://chat.nighthawk.work/api';
@@ -277,9 +520,11 @@
         }
         function incrementUnread() { unseenCount += 1; setFavicon(NOTIF_FAVICON); document.title = `(${unseenCount}) Google`; }
 
-        // ========== API stubs (same as original) ==========
+        // ========== API stubs (same as original; stubbed for demo) ==========
         async function apiRequest(endpoint, options = {}) {
+            // stubbed: simulate JSON response for demo purposes if API not available
             try {
+                // If API_BASE_URL is unreachable, this will throw; keep behavior minimal
                 const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -289,8 +534,15 @@
                 if (!response.ok) throw new Error(data.error || 'Request failed');
                 return data;
             } catch (err) {
-                console.error('API request failed:', err);
-                throw err;
+                console.warn('API request failed (stubbed):', err);
+                // Provide safe empty shapes so UI still works locally
+                if (endpoint.startsWith('/config')) return { guest_login_enabled: true };
+                if (endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register') || endpoint.startsWith('/auth/guest')) {
+                    return { user: { id: Date.now(), username: 'guest-' + Math.floor(Math.random()*9999), is_guest: true } };
+                }
+                if (endpoint.startsWith('/messages')) return { messages: [] };
+                if (endpoint.startsWith('/users')) return { users: [] };
+                return {};
             }
         }
 
@@ -315,13 +567,13 @@
         }
         async function sendMessage(content, recipient_id = null) {
             const data = await apiRequest('/messages', { method: 'POST', body: JSON.stringify({ content, user_id: currentUser.id, is_guest: currentUser.is_guest || false, recipient_id }) });
-            return data.message;
+            return data.message || { id: Date.now(), display_name: currentUser ? currentUser.username : 'you', username: currentUser ? currentUser.username : 'you', is_guest: currentUser ? currentUser.is_guest : true, content, timestamp: Date.now() };
         }
         async function fetchMessages() {
             const data = await apiRequest(`/messages?last_id=${lastMessageId}`);
-            return data.messages;
+            return data.messages || [];
         }
-        async function fetchRecentMessages() { const data = await apiRequest('/messages/recent'); return data.messages; }
+        async function fetchRecentMessages() { const data = await apiRequest('/messages/recent'); return data.messages || []; }
         async function loadUsers() {
             try { const data = await apiRequest('/users'); usersList = data.users || []; populateUserSelect(); } catch (err) { console.error('Failed to load users:', err); }
         }
@@ -333,7 +585,7 @@
             } catch (err) { console.error('Delete message failed:', err); throw err; }
         }
 
-        // ========== Message display (same as before) ==========
+        // ========== Message display ==========
         function createMessageElement(message) {
             const d = document.createElement('div');
             d.className = 'message-item fade-in';
@@ -439,7 +691,6 @@
                 else userDisplay.textContent = `[${user.username}]`;
             }
             loadUsers(); loadMessages(); startPolling(); messageInput.focus(); markAsSeen();
-            // If locked, PIN system will show overlay
             if (window.PinSystem && !PinSystem.isUnlocked()) {
                 PinSystem.showOverlayIfLocked();
             }
@@ -507,10 +758,208 @@
 
         window.addEventListener('focus', () => { markAsSeen(); if (window.PinSystem && PinSystem.isUnlocked()) loadMessages(); });
 
-        // ========== PIN SYSTEM (box-style) ==========
+        // ========== NOTES APP (global opener available) ==========
+        (function notesAppModule() {
+            const NOTES_KEY = 'notes_app_v1';
+            const lockPanel = document.getElementById('lock-panel');
+
+            function loadNotesFromStorage() {
+                try {
+                    const raw = localStorage.getItem(NOTES_KEY);
+                    if (!raw) return [];
+                    return JSON.parse(raw);
+                } catch (e) {
+                    console.error('Failed to parse notes:', e);
+                    return [];
+                }
+            }
+            function saveNotesToStorage(notes) {
+                localStorage.setItem(NOTES_KEY, JSON.stringify(notes || []));
+            }
+
+            function createNoteObject() {
+                return {
+                    id: Date.now() + Math.floor(Math.random() * 999),
+                    title: 'Untitled',
+                    content: '',
+                    updatedAt: new Date().toISOString()
+                };
+            }
+
+            // expose globally so PinSystem can call it
+            window.openNotesMode = function openNotesMode() {
+                const notes = loadNotesFromStorage();
+                // ensure at least one sample note
+                if (!notes || notes.length === 0) {
+                    const sample = createNoteObject();
+                    sample.title = 'Quick Note';
+                    sample.content = 'This is a dummy notes app. Your notes are stored locally in your browser (localStorage).';
+                    notes.push(sample);
+                    saveNotesToStorage(notes);
+                }
+
+                // Replace lockPanel content with notes UI
+                lockPanel.innerHTML = `
+                    <div class="notes-app w-full">
+                        <div class="flex gap-4">
+                            <div class="notes-sidebar w-1/3 border-r pr-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-semibold">Notes</h3>
+                                    <div class="flex gap-2">
+                                        <button id="notes-new" class="px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700">New</button>
+                                        <button id="notes-close" class="px-3 py-1 text-sm rounded bg-gray-600 hover:bg-gray-700">Close</button>
+                                    </div>
+                                </div>
+                                <input id="notes-search" placeholder="Search..." class="w-full mb-3 p-2 rounded bg-dark-700 border border-dark-500 text-sm" />
+                                <div id="notes-list" style="max-height:420px;overflow:auto;"></div>
+                            </div>
+                            <div class="notes-editor flex-1 pl-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <input id="note-title" class="text-xl p-2 rounded bg-dark-800 border border-dark-500 w-3/4" placeholder="Title" />
+                                    <div class="flex gap-2">
+                                        <button id="note-delete" class="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700">Delete</button>
+                                        <button id="note-save" class="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700">Save</button>
+                                    </div>
+                                </div>
+                                <textarea id="note-content" class="w-full h-72 p-3 rounded bg-dark-700 border border-dark-500" placeholder="Write your note..."></textarea>
+                                <div id="note-meta" class="text-xs text-gray-400 mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Wire UI
+                const notesListEl = document.getElementById('notes-list');
+                const titleEl = document.getElementById('note-title');
+                const contentEl = document.getElementById('note-content');
+                const saveBtn = document.getElementById('note-save');
+                const deleteBtn = document.getElementById('note-delete');
+                const newBtn = document.getElementById('notes-new');
+                const closeBtn = document.getElementById('notes-close');
+                const searchEl = document.getElementById('notes-search');
+                const metaEl = document.getElementById('note-meta');
+
+                let notesState = loadNotesFromStorage();
+                let currentNoteId = notesState[0] && notesState[0].id;
+
+                function renderList(filter = '') {
+                    const f = filter.trim().toLowerCase();
+                    notesListEl.innerHTML = '';
+                    const ordered = notesState.slice().sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+                    ordered.forEach(n => {
+                        if (f && !(n.title + ' ' + n.content).toLowerCase().includes(f)) return;
+                        const item = document.createElement('div');
+                        item.className = 'note-item p-2 mb-2 rounded hover:bg-dark-800 cursor-pointer border border-dark-600';
+                        item.dataset.id = n.id;
+                        item.innerHTML = `<div class="flex justify-between items-start"><strong>${escapeHtml(n.title || 'Untitled')}</strong><span class="text-xs text-gray-400">${new Date(n.updatedAt).toLocaleString()}</span></div>
+                                          <div class="text-sm text-gray-400 truncate mt-1">${escapeHtml(n.content || '')}</div>`;
+                        item.addEventListener('click', () => {
+                            loadNoteIntoEditor(n.id);
+                        });
+                        notesListEl.appendChild(item);
+                    });
+                    highlightSelected();
+                }
+
+                function loadNoteIntoEditor(id) {
+                    const note = notesState.find(x => x.id === Number(id));
+                    if (!note) return;
+                    currentNoteId = note.id;
+                    titleEl.value = note.title;
+                    contentEl.value = note.content;
+                    metaEl.textContent = `Last edited: ${new Date(note.updatedAt).toLocaleString()}`;
+                    highlightSelected();
+                }
+
+                function highlightSelected() {
+                    const items = Array.from(document.querySelectorAll('.note-item'));
+                    items.forEach(el => el.classList.toggle('bg-dark-900', Number(el.dataset.id) === Number(currentNoteId)));
+                }
+
+                function persistState() {
+                    saveNotesToStorage(notesState);
+                    renderList(searchEl.value || '');
+                }
+
+                function saveCurrentNote() {
+                    if (!currentNoteId) return;
+                    const idx = notesState.findIndex(x => x.id === Number(currentNoteId));
+                    if (idx === -1) return;
+                    notesState[idx].title = titleEl.value || 'Untitled';
+                    notesState[idx].content = contentEl.value || '';
+                    notesState[idx].updatedAt = new Date().toISOString();
+                    persistState();
+                    metaEl.textContent = `Saved: ${new Date(notesState[idx].updatedAt).toLocaleString()}`;
+                }
+
+                function deleteCurrentNote() {
+                    if (!currentNoteId) return;
+                    if (!confirm('Delete this note?')) return;
+                    notesState = notesState.filter(x => x.id !== Number(currentNoteId));
+                    if (notesState.length === 0) {
+                        const n = createNoteObject();
+                        notesState.push(n);
+                    }
+                    currentNoteId = notesState[0].id;
+                    persistState();
+                    loadNoteIntoEditor(currentNoteId);
+                }
+
+                // autosave (debounced)
+                let autosaveTimer = null;
+                function scheduleAutosave() {
+                    clearTimeout(autosaveTimer);
+                    autosaveTimer = setTimeout(() => {
+                        if (currentNoteId) {
+                            saveCurrentNote();
+                        }
+                    }, 700);
+                }
+
+                // new note
+                newBtn.addEventListener('click', () => {
+                    const n = createNoteObject();
+                    notesState.unshift(n);
+                    currentNoteId = n.id;
+                    persistState();
+                    loadNoteIntoEditor(currentNoteId);
+                    titleEl.focus();
+                });
+
+                saveBtn.addEventListener('click', () => {
+                    saveCurrentNote();
+                });
+
+                deleteBtn.addEventListener('click', () => {
+                    deleteCurrentNote();
+                });
+
+                closeBtn.addEventListener('click', () => {
+                    // reload page to restore original listeners and lock panel structure
+                    window.location.reload();
+                });
+
+                titleEl.addEventListener('input', scheduleAutosave);
+                contentEl.addEventListener('input', scheduleAutosave);
+                searchEl.addEventListener('input', () => renderList(searchEl.value || ''));
+
+                // show initial list and editor
+                renderList();
+                loadNoteIntoEditor(currentNoteId);
+            };
+
+            // Also allow event-based opener (PinSystem may dispatch this)
+            document.addEventListener('dummyPinMatched', (e) => {
+                window.openNotesMode && window.openNotesMode();
+            });
+        })();
+
+        // ========== PIN SYSTEM (box-style) with Dummy PIN support ==========
         (function () {
             const PIN_HASH_KEY = 'chat_pin_hash_v2';
             const PIN_LENGTH_KEY = 'chat_pin_length_v2';
+            const DUMMY_PIN_HASH_KEY = 'chat_dummy_pin_hash_v2';
+            const DUMMY_PIN_LENGTH_KEY = 'chat_dummy_pin_length_v2';
             const SESSION_UNLOCK_KEY = 'chat_pin_unlocked_v2';
             const INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -520,6 +969,8 @@
             const pinModalClose = document.getElementById('pin-modal-close');
             const pinSetupInput = document.getElementById('pin-setup-input');
             const pinSetupConfirm = document.getElementById('pin-setup-confirm');
+            const pinDummyInput = document.getElementById('pin-dummy-input');
+            const pinDummyConfirm = document.getElementById('pin-dummy-confirm');
             const savePinBtn = document.getElementById('save-pin-btn');
             const removePinBtn = document.getElementById('remove-pin-btn');
             const pinSetupMsg = document.getElementById('pin-setup-msg');
@@ -528,7 +979,7 @@
             const pinBoxesContainer = document.getElementById('pin-boxes');
             const pinHidden = document.getElementById('pin-hidden');
             const unlockBtn = document.getElementById('unlock-btn');
-            const unlockCancelBtn = document.getElementById('unlock-cancel-btn');
+            const unlockCancelBtn = document.getElementById('unlock-cancel-btn'); // optional; may be null
             const unlockMsg = document.getElementById('unlock-msg');
 
             let inactivityTimer = null;
@@ -547,6 +998,7 @@
                 return bufferToHex(hashBuffer);
             }
 
+            // PIN existence and storage
             function pinExists() { return !!localStorage.getItem(PIN_HASH_KEY); }
             function getStoredPinLength() { return parseInt(localStorage.getItem(PIN_LENGTH_KEY) || '4', 10); }
             async function savePin(pin) {
@@ -554,13 +1006,39 @@
                 localStorage.setItem(PIN_HASH_KEY, h);
                 localStorage.setItem(PIN_LENGTH_KEY, String(pin.length));
             }
-            function removePin() { localStorage.removeItem(PIN_HASH_KEY); localStorage.removeItem(PIN_LENGTH_KEY); }
+
+            function dummyExists() { return !!localStorage.getItem(DUMMY_PIN_HASH_KEY); }
+            function getStoredDummyLength() { return parseInt(localStorage.getItem(DUMMY_PIN_LENGTH_KEY) || '0', 10); }
+            async function saveDummyPin(dummy) {
+                const h = await hashPin(dummy);
+                localStorage.setItem(DUMMY_PIN_HASH_KEY, h);
+                localStorage.setItem(DUMMY_PIN_LENGTH_KEY, String(dummy.length));
+            }
+            function removeDummyPin() {
+                localStorage.removeItem(DUMMY_PIN_HASH_KEY);
+                localStorage.removeItem(DUMMY_PIN_LENGTH_KEY);
+            }
+
+            function removePin() {
+                localStorage.removeItem(PIN_HASH_KEY);
+                localStorage.removeItem(PIN_LENGTH_KEY);
+                // also remove dummy when removing main pin
+                removeDummyPin();
+            }
+
             async function verifyPin(pin) {
                 const stored = localStorage.getItem(PIN_HASH_KEY);
                 if (!stored) return false;
                 const h = await hashPin(pin);
                 return stored === h;
             }
+            async function verifyDummyPin(pin) {
+                const stored = localStorage.getItem(DUMMY_PIN_HASH_KEY);
+                if (!stored) return false;
+                const h = await hashPin(pin);
+                return stored === h;
+            }
+
             function sessionUnlock() { sessionStorage.setItem(SESSION_UNLOCK_KEY, 'true'); }
             function sessionLock() { sessionStorage.removeItem(SESSION_UNLOCK_KEY); }
             function isSessionUnlocked() { return sessionStorage.getItem(SESSION_UNLOCK_KEY) === 'true'; }
@@ -583,25 +1061,49 @@
 
                 // focus behaviour: we use a hidden input to receive keyboard input (helps on mobile)
                 pinHidden.value = '';
+                // allow typing up to the larger of PIN length or dummy length (so paste of dummy works)
+                pinHidden.setAttribute('maxlength', Math.max(currentLength, getStoredDummyLength() || 0));
                 pinHidden.focus();
 
                 // keyboard handling: when user types digits, fill successive boxes
                 pinHidden.oninput = (e) => {
                     const val = pinHidden.value.replace(/\D/g, '');
-                    pinHidden.value = val.slice(0, currentLength); // clamp
+                    const clampLen = Math.max(currentLength, getStoredDummyLength() || 0);
+                    pinHidden.value = val.slice(0, clampLen); // clamp
+                    const displayVal = pinHidden.value.slice(0, currentLength);
                     for (let i = 0; i < currentLength; i++) {
-                        inputElems[i].textContent = val[i] || '';
-                        inputElems[i].classList.toggle('filled', !!val[i]);
+                        inputElems[i].textContent = displayVal[i] || '';
+                        inputElems[i].classList.toggle('filled', !!displayVal[i]);
                     }
-                    if (val.length >= currentLength) {
-                        attemptUnlock(val);
-                    }
+                    // If typed length matches dummy length and dummy exists, check dummy
+                    (async () => {
+                        const typed = pinHidden.value.replace(/\D/g, '');
+                        if (dummyExists() && typed.length === getStoredDummyLength()) {
+                            const okDummy = await verifyDummyPin(typed);
+                            if (okDummy) {
+                                // open notes app (non-destructive)
+                                if (typeof window.openNotesMode === 'function') {
+                                    window.openNotesMode();
+                                } else {
+                                    document.dispatchEvent(new CustomEvent('dummyPinMatched', { detail: { pin: typed } }));
+                                }
+                                // clear input
+                                pinHidden.value = '';
+                                inputElems.forEach(b => b.textContent = '');
+                                return;
+                            }
+                        }
+                        // If typed length equals actual PIN length, attempt normal unlock
+                        if (typed.length >= currentLength) {
+                            attemptUnlock(typed.slice(0, currentLength));
+                        }
+                    })();
                 };
 
                 // support paste into hidden
                 pinHidden.onpaste = (e) => {
                     e.preventDefault();
-                    const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, currentLength);
+                    const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, Math.max(currentLength, getStoredDummyLength() || 0));
                     pinHidden.value = text;
                     pinHidden.dispatchEvent(new Event('input'));
                 };
@@ -616,22 +1118,38 @@
                 });
             }
 
+            // attempt unlock: first check dummy -> notes, else check real PIN -> unlock
             async function attemptUnlock(candidate) {
                 unlockMsg.textContent = '';
+                // check dummy first
+                if (dummyExists()) {
+                    const isDummy = await verifyDummyPin(candidate);
+                    if (isDummy) {
+                        if (typeof window.openNotesMode === 'function') {
+                            window.openNotesMode();
+                        } else {
+                            document.dispatchEvent(new CustomEvent('dummyPinMatched', { detail: { pin: candidate } }));
+                        }
+                        pinHidden.value = '';
+                        inputElems.forEach(b => b.textContent = '');
+                        return;
+                    }
+                }
+
+                // Now check real PIN
                 if (!pinExists()) { unlockMsg.textContent = 'No PIN set.'; return; }
                 const ok = await verifyPin(candidate);
                 if (ok) {
                     sessionUnlock();
                     hideOverlay();
-                    loadMessages();
-                    startPolling();
+                    loadMessages && typeof loadMessages === 'function' && loadMessages();
+                    startPolling && typeof startPolling === 'function' && startPolling();
                     resetInactivityTimer();
                 } else {
                     // shake animation & clear input
                     unlockMsg.textContent = 'Incorrect PIN';
                     pinBoxesContainer.classList.add('shake');
                     setTimeout(() => pinBoxesContainer.classList.remove('shake'), 420);
-                    // clear
                     pinHidden.value = '';
                     inputElems.forEach(b => b.textContent = '');
                     setTimeout(() => pinHidden.focus(), 150);
@@ -641,8 +1159,7 @@
             function showOverlay() {
                 buildPinBoxes(getStoredPinLength() || 4);
                 lockOverlay.classList.remove('hidden');
-                // block pointer events to the rest because overlay covers whole screen
-                stopPolling();
+                stopPolling && typeof stopPolling === 'function' && stopPolling();
                 pinHidden.focus();
             }
             function hideOverlay() {
@@ -678,6 +1195,8 @@
             function openModal() {
                 pinSetupInput.value = '';
                 pinSetupConfirm.value = '';
+                pinDummyInput.value = '';
+                pinDummyConfirm.value = '';
                 pinSetupMsg.textContent = '';
                 pinModal.classList.remove('hidden');
                 setTimeout(() => pinSetupInput.focus(), 80);
@@ -692,18 +1211,42 @@
                 pinSetupMsg.textContent = '';
                 const a = pinSetupInput.value.trim();
                 const b = pinSetupConfirm.value.trim();
+                const da = pinDummyInput.value.trim();
+                const db = pinDummyConfirm.value.trim();
+
+                // validate main PIN
                 if (!/^\d{4,8}$/.test(a)) { pinSetupMsg.textContent = 'PIN must be 4–8 digits.'; return; }
                 if (a !== b) { pinSetupMsg.textContent = 'PINs do not match.'; return; }
-                await savePin(a);
-                pinSetupMsg.textContent = 'PIN saved.';
-                // keep session unlocked for now
-                sessionUnlock();
-                closeModal();
+
+                // validate dummy if provided
+                if (da || db) {
+                    if (!/^\d{4,8}$/.test(da)) { pinSetupMsg.textContent = 'Dummy PIN must be 4–8 digits.'; return; }
+                    if (da !== db) { pinSetupMsg.textContent = 'Dummy PINs do not match.'; return; }
+                    if (da === a) { pinSetupMsg.textContent = 'Dummy PIN should be different from the main PIN.'; return; }
+                }
+
+                try {
+                    await savePin(a);
+                    if (da) {
+                        await saveDummyPin(da);
+                        pinSetupMsg.textContent = 'PIN and dummy PIN saved.';
+                    } else {
+                        // if dummy inputs left blank, remove any stored dummy
+                        removeDummyPin();
+                        pinSetupMsg.textContent = 'PIN saved. Dummy PIN removed (if any).';
+                    }
+                    // keep session unlocked for now
+                    sessionUnlock();
+                    closeModal();
+                } catch (err) {
+                    console.error('Error saving PINs:', err);
+                    pinSetupMsg.textContent = 'Failed to save PIN.';
+                }
             });
 
             removePinBtn.addEventListener('click', () => {
-                if (!pinExists()) { pinSetupMsg.textContent = 'No PIN set.'; return; }
-                if (!confirm('Remove the PIN? This will disable locking.')) return;
+                if (!pinExists() && !dummyExists()) { pinSetupMsg.textContent = 'No PIN set.'; return; }
+                if (!confirm('Remove the PIN (and any dummy PIN)? This will disable locking.')) return;
                 removePin();
                 sessionLock();
                 pinSetupMsg.textContent = 'PIN removed.';
@@ -713,22 +1256,29 @@
             lockNowBtn.addEventListener('click', lockNow);
 
             unlockBtn.addEventListener('click', () => {
-                // try unlocking with current hidden value
-                const val = pinHidden.value.replace(/\D/g, '').slice(0, getStoredPinLength() || 4);
-                if (!val || val.length < (getStoredPinLength() || 4)) {
+                const val = (document.getElementById('pin-hidden') || {}).value || '';
+                const normalized = val.replace(/\D/g, '');
+                if (!normalized || normalized.length < (getStoredPinLength() || 4)) {
+                    if (dummyExists() && normalized.length >= getStoredDummyLength()) {
+                        // handled by input oninput; nothing to do here
+                        unlockMsg.textContent = 'Checking...';
+                        return;
+                    }
                     unlockMsg.textContent = 'Enter full PIN';
                     pinHidden.focus();
                     return;
                 }
-                attemptUnlock(val);
+                attemptUnlock(normalized.slice(0, getStoredPinLength() || 4));
             });
 
-            unlockCancelBtn.addEventListener('click', () => {
-                // clear input but keep overlay visible
-                pinHidden.value = '';
-                inputElems.forEach(b => b.textContent = '');
-                unlockMsg.textContent = '';
-            });
+            if (unlockCancelBtn) {
+                unlockCancelBtn.addEventListener('click', () => {
+                    // clear input but keep overlay visible
+                    pinHidden.value = '';
+                    inputElems.forEach(b => b.textContent = '');
+                    unlockMsg.textContent = '';
+                });
+            }
 
             // autolock on tab switch
             document.addEventListener('visibilitychange', () => {
@@ -737,13 +1287,11 @@
                         sessionLock();
                     }
                 } else {
-                    // when returning, if locked => show overlay and don't fetch messages
                     if (!isUnlocked()) {
                         showOverlay();
                     } else {
-                        // if unlocked, fetch immediately
-                        loadMessages();
-                        startPolling();
+                        loadMessages && typeof loadMessages === 'function' && loadMessages();
+                        startPolling && typeof startPolling === 'function' && startPolling();
                         resetInactivityTimer();
                     }
                 }
@@ -754,14 +1302,13 @@
                 if (!lockOverlay.classList.contains('hidden')) {
                     const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
                     if (!text) return;
-                    pinHidden.value = text.slice(0, getStoredPinLength() || 4);
+                    pinHidden.value = text.slice(0, Math.max(getStoredPinLength() || 4, getStoredDummyLength() || 0));
                     pinHidden.dispatchEvent(new Event('input'));
                 }
             });
 
             // On load: if a PIN exists and session not unlocked -> show overlay so reload requires PIN
             if (pinExists() && !isSessionUnlocked()) {
-                // show overlay immediately
                 showOverlay();
             }
 
@@ -769,7 +1316,9 @@
             window.PinSystem = {
                 isUnlocked,
                 showOverlayIfLocked: () => { if (!isUnlocked()) showOverlay(); },
-                init: () => { startActivityTracking(); }
+                init: () => { startActivityTracking(); },
+                verifyDummyPin,
+                dummyExists
             };
 
             // start tracking
