@@ -1,24 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Google</title>
 
     <!-- Default favicon (Google logo as requested) -->
     <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
 
-    <!-- TailwindCSS -->
+    <!-- Tailwind (keeps your utility classes working) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts - Chakra Petch -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
-    <link 
-        rel="stylesheet" 
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-    />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+
+    <!-- Local stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
     <script>
         tailwind.config = {
             theme: {
@@ -39,174 +42,86 @@
             }
         }
     </script>
-
-    <style>
-        body {
-            font-family: 'Chakra Petch', monospace;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message-appear {
-            animation: messageAppear 0.3s ease-out;
-        }
-
-        @keyframes messageAppear {
-            from {
-                opacity: 0;
-                transform: translateX(-20px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0) scale(1);
-            }
-        }
-
-        #messages-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #messages-container::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-
-        #messages-container::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
-            border-radius: 3px;
-        }
-
-        #messages-container::-webkit-scrollbar-thumb:hover {
-            background: #6a6a6a;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .owner-shield {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            background: #1a1a1a;
-            color: #111827;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 6px;
-        }
-
-        .dm-badge {
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.05);
-            color: #cbd5e1;
-            border: 1px solid rgba(255,255,255,0.03);
-        }
-    </style>
 </head>
 <body class="bg-dark-900 text-gray-100 font-chakra min-h-screen">
-    <!-- Auth Screen -->
+
+    <!-- Auth Screen (unchanged) -->
     <div id="auth-screen" class="min-h-screen flex items-center justify-center px-4">
         <div class="max-w-md w-full">
             <div class="bg-dark-800 border border-dark-600 rounded-lg p-8 shadow-xl">
-                <!-- Login/Register Toggle -->
                 <div class="mb-6">
                     <div class="flex bg-dark-700 rounded-lg p-1">
-                        <button id="login-tab" 
+                        <button id="login-tab"
                                 class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all text-white bg-blue-600">
                             Login
                         </button>
-                        <button id="register-tab" 
+                        <button id="register-tab"
                                 class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all text-gray-300 hover:text-white">
                             Register
                         </button>
                     </div>
                 </div>
 
-                <!-- Login Form -->
                 <form id="login-form" class="space-y-4">
                     <div>
-                        <input type="text" 
+                        <input type="text"
                                id="login-username"
-                               placeholder="Username" 
+                               placeholder="Username"
                                required
                                class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                     </div>
                     <div>
-                        <input type="password" 
+                        <input type="password"
                                id="login-password"
-                               placeholder="Password" 
+                               placeholder="Password"
                                required
                                class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                     </div>
-                    <button type="submit" 
+                    <button type="submit"
                             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                         Login
                     </button>
                 </form>
 
-                <!-- Register Form (Hidden by default) -->
                 <form id="register-form" class="space-y-4 hidden">
                     <div>
-                        <input type="text" 
+                        <input type="text"
                                id="register-username"
-                               placeholder="Username (min 3 chars)" 
-                               required
-                               minlength="3"
+                               placeholder="Username (min 3 chars)"
+                               required minlength="3"
                                class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
                     </div>
                     <div>
-                        <input type="password" 
+                        <input type="password"
                                id="register-password"
-                               placeholder="Password (min 6 chars)" 
-                               required
-                               minlength="6"
+                               placeholder="Password (min 6 chars)"
+                               required minlength="6"
                                class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
                     </div>
-                    <button type="submit" 
+                    <button type="submit"
                             class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                         Create Account
                     </button>
                 </form>
 
-                <!-- Guest Login -->
                 <div id="guest-section" class="mt-6 pt-6 border-t border-dark-600">
-                    <button id="guest-btn" 
+                    <button id="guest-btn"
                            class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105">
                         Sign in as Guest
                     </button>
                 </div>
 
-                <!-- Error Messages -->
                 <div id="auth-error" class="mt-4 p-3 bg-red-600 text-white rounded-lg hidden"></div>
             </div>
         </div>
     </div>
 
     <!-- Chat Screen -->
-    <div id="chat-screen" class="min-h-screen flex flex-col hidden">
-        <!-- User info and logout at top -->
+    <div id="chat-screen" class="min-h-screen flex flex-col hidden" aria-live="polite">
+        <!-- Top bar -->
         <div class="bg-dark-800 border-b border-dark-600 px-6 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <span id="user-display" class="text-gray-300"></span>
-
-                <!-- Users dropdown for DM -->
                 <div>
                     <select id="user-select" class="bg-dark-700 border border-dark-500 text-gray-200 rounded px-3 py-1">
                         <option value="">All (global)</option>
@@ -216,7 +131,18 @@
 
             <div class="flex items-center space-x-3">
                 <button id="clear-recipient-btn" class="text-xs text-gray-400 hover:text-white hidden">Clear DM</button>
-                <button id="logout-btn" 
+
+                <!-- PIN controls: Set / Lock -->
+                <div class="flex items-center space-x-2">
+                    <button id="pin-btn" title="Set / Change PIN" class="px-3 py-1 rounded bg-transparent border border-dark-600 text-sm text-gray-300 hover:bg-dark-700">
+                        <i class="fas fa-lock-keyhole mr-2"></i>PIN
+                    </button>
+                    <button id="lock-now-btn" title="Lock now" class="px-3 py-1 rounded bg-transparent border border-dark-600 text-sm text-gray-300 hover:bg-dark-700">
+                        <i class="fas fa-lock mr-1"></i>Lock
+                    </button>
+                </div>
+
+                <button id="logout-btn"
                        class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors text-sm">
                     Logout
                 </button>
@@ -224,27 +150,24 @@
         </div>
 
         <div class="flex-1 flex flex-col">
-            <!-- Messages Container -->
             <div id="messages-container" class="flex-1 overflow-y-auto bg-dark-900 p-4 space-y-3">
-                <!-- Empty state -->
                 <div id="empty-state" class="text-center text-gray-400 py-8">
                     <div class="text-4xl mb-4">💬</div>
                     <p>No messages yet. Be the first to say hello!</p>
                 </div>
             </div>
 
-            <!-- Message Input -->
             <div class="bg-dark-800 border-t border-dark-600 p-4">
                 <form id="message-form" class="flex space-x-3">
                     <div class="flex-1">
-                        <input type="text" 
-                               id="message-input" 
-                               placeholder="Type your message..." 
+                        <input type="text"
+                               id="message-input"
+                               placeholder="Type your message..."
                                maxlength="500"
                                class="w-full px-4 py-3 bg-dark-700 border border-dark-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                                autocomplete="off">
                     </div>
-                    <button type="submit" 
+                    <button type="submit"
                             id="send-button"
                             class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-dark-800 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span id="send-text">Send</span>
@@ -256,8 +179,6 @@
                         </span>
                     </button>
                 </form>
-
-                <!-- Character count -->
                 <div class="mt-2 text-right">
                     <span id="char-count" class="text-xs text-gray-400">0/500</span>
                 </div>
@@ -265,21 +186,72 @@
         </div>
     </div>
 
+    <!-- PIN Modal (create/change) -->
+    <div id="pin-modal" class="fixed inset-0 z-40 hidden items-center justify-center p-4">
+        <div class="w-full max-w-md bg-gradient-to-br from-dark-800 to-dark-700 border border-dark-600 rounded-2xl p-6 shadow-2xl backdrop-blur-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Set / Change PIN</h3>
+                <button id="pin-modal-close" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">Create a 4–8 digit numeric PIN to lock this site. PIN is stored locally (hashed).</p>
+
+            <div class="space-y-3">
+                <input id="new-pin" type="password" inputmode="numeric" pattern="\d*" maxlength="8"
+                       placeholder="New PIN (4-8 digits)" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 placeholder-gray-400 text-white focus:outline-none">
+                <input id="confirm-pin" type="password" inputmode="numeric" pattern="\d*" maxlength="8"
+                       placeholder="Confirm PIN" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 placeholder-gray-400 text-white focus:outline-none">
+                <div class="flex items-center justify-between">
+                    <div class="space-x-2">
+                        <button id="save-pin-btn" class="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Save PIN</button>
+                        <button id="remove-pin-btn" class="px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white">Remove PIN</button>
+                    </div>
+                    <div id="pin-modal-msg" class="text-sm text-gray-400"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Lock Overlay -->
+    <div id="lock-overlay" class="fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+        <div class="relative z-10 w-full max-w-lg mx-auto p-8 rounded-2xl bg-gradient-to-br from-dark-800 to-dark-700 border border-dark-600 shadow-2xl">
+            <div class="flex items-center space-x-4 mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl">
+                    <i class="fas fa-user-lock"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold">Locked</h2>
+                    <p class="text-sm text-gray-400">Site is locked. Enter your PIN to continue.</p>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <input id="unlock-pin-input" type="password" inputmode="numeric" pattern="\d*" maxlength="8"
+                       placeholder="Enter PIN" autocomplete="off"
+                       class="w-full p-4 rounded-lg bg-dark-700 border border-dark-500 placeholder-gray-400 text-white focus:outline-none text-xl tracking-widest text-center">
+                <div class="flex items-center gap-3 justify-end">
+                    <button id="unlock-btn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Unlock</button>
+                    <button id="unlock-cancel-btn" class="px-4 py-2 rounded bg-transparent border border-dark-600 text-gray-300 hover:bg-dark-700">Cancel</button>
+                </div>
+                <div id="unlock-msg" class="text-sm text-gray-400"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main application script (original + pin additions) -->
     <script>
-        // Configuration - Change this URL to your API endpoint
+        // ========== Original App Config & State ==========
         const API_BASE_URL = 'https://chat.nighthawk.work/api';
-
-        // FAVICON URLs
         const DEFAULT_FAVICON = 'https://www.google.com/favicon.ico';
-        const NOTIF_FAVICON = 'https://cdn-icons-png.flaticon.com/512/1827/1827504.png'; // small bell-style icon
+        const NOTIF_FAVICON = 'https://cdn-icons-png.flaticon.com/512/1827/1827504.png';
 
-        // Application state
         let currentUser = null;
         let lastMessageId = 0;
         let pollInterval = null;
         let config = { guest_login_enabled: true };
-        let usersList = []; // loaded from /api/users
-        let currentRecipient = null; // object {id, username} or null for All
+        let usersList = [];
+        let currentRecipient = null;
         let unseenCount = 0;
 
         // DOM elements
@@ -306,7 +278,7 @@
         const clearRecipientBtn = document.getElementById('clear-recipient-btn');
         const faviconEl = document.getElementById('favicon');
 
-        // Utility functions
+        // ========== Utilities ==========
         function showError(message) {
             authError.textContent = message;
             authError.classList.remove('hidden');
@@ -358,7 +330,6 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // favicon & notifications
         function setFavicon(url) {
             if (faviconEl) faviconEl.href = url;
             else {
@@ -382,7 +353,7 @@
             document.title = `(${unseenCount}) Google`;
         }
 
-        // API functions
+        // ========== API functions (same as original) ==========
         async function apiRequest(endpoint, options = {}) {
             try {
                 const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -493,7 +464,7 @@
             }
         }
 
-        // Message display functions
+        // ========== Message display (unchanged) ==========
         function createMessageElement(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message-item fade-in';
@@ -507,14 +478,10 @@
                 ? `<i class="fas fa-shield-alt text-white ml-1" title="owner"></i>`
                 : '';
 
-
-            // DM label if message is a DM
-
             const dmLabel = (message.recipient_id != null)
                 ? `<span class="dm-badge">DM ${message.recipient_username ? '→ [' + escapeHtml(message.recipient_username) + ']' : ''}</span>`
                 : '';
 
-            // Delete button (ONLY visible if current user is 'owner' AND not a guest)
             let deleteButtonHtml = '';
             if (
                 currentUser &&
@@ -523,13 +490,13 @@
                 currentUser.username.toLowerCase() === 'owner'
             ) {
                 deleteButtonHtml = `
-                    <button data-delete-id="${message.id}" 
+                    <button data-delete-id="${message.id}"
                             class="ml-3 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" 
-                            class="h-4 w-4" 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            stroke="currentColor" 
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
                             stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
@@ -537,7 +504,6 @@
                 `;
             }
 
-            // Display name (with owner's shield if applicable)
             messageDiv.innerHTML = `
                 <div class="flex items-start space-x-3">
                     <div class="flex-shrink-0">
@@ -564,7 +530,6 @@
                 </div>
             `;
 
-            // attach delete handler if button exists
             const btn = messageDiv.querySelector('button[data-delete-id]');
             if (btn) {
                 btn.addEventListener('click', async (e) => {
@@ -589,17 +554,11 @@
         }
 
         function messageMatchesCurrentView(message) {
-            // If currentRecipient is null -> show messages that are not DM-only to other people (global + DMs involving current user)
             if (!currentRecipient) {
-                // show messages which are:
-                // - not a DM (recipient_id == null)
-                // - OR a DM where currentUser is sender or recipient
                 if (message.recipient_id == null) return true;
                 if (!currentUser) return false;
                 return (message.user_id === currentUser.id) || (message.recipient_id === currentUser.id);
             } else {
-                // We are viewing a DM thread with currentRecipient:
-                // Show messages where (sender==currentUser && recipient==currentRecipient) OR (sender==currentRecipient && recipient==currentUser)
                 if (!currentUser) return false;
                 const a = currentUser.id;
                 const b = currentRecipient.id;
@@ -637,15 +596,12 @@
         }
 
         function addMessage(message, scroll = true) {
-            // Avoid duplicates
             if (document.querySelector(`[data-message-id="${message.id}"]`)) {
                 return;
             }
 
             if (!messageMatchesCurrentView(message)) {
-                // If we are hidden, and the user is not focused, increment unread
                 if (document.hidden && currentUser) {
-                    // Only increment if the incoming message is relevant to the user (global or DM to them)
                     const relevant = (!message.recipient_id) || (message.recipient_id === currentUser.id) || (message.user_id === currentUser.id);
                     if (relevant) incrementUnread();
                 }
@@ -657,12 +613,10 @@
             const messageElement = createMessageElement(message);
             messagesContainer.appendChild(messageElement);
 
-            // Trigger animation
             setTimeout(() => {
                 messageElement.classList.add('message-appear');
             }, 10);
 
-            // Update last message ID
             lastMessageId = Math.max(lastMessageId, message.id);
 
             if (scroll) scrollToBottom();
@@ -687,10 +641,7 @@
             pollInterval = setInterval(() => {
                 fetchMessages()
                     .then(messages => {
-                        messages.forEach(m => {
-                            addMessage(m);
-                        });
-                        // Also lightly refresh users (in case of new accounts)
+                        messages.forEach(m => addMessage(m));
                         loadUsers();
                     })
                     .catch(error => {
@@ -706,7 +657,7 @@
             }
         }
 
-        // Auth functions
+        // ========== Auth UI (unchanged) ==========
         function showAuthScreen() {
             authScreen.classList.remove('hidden');
             chatScreen.classList.add('hidden');
@@ -720,11 +671,9 @@
             authScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
 
-            // Update user display
             if (user.is_guest) {
                 userDisplay.innerHTML = '[guest]';
             } else {
-                // show owner shield in top display if this is owner
                 if (user.username && user.username.toLowerCase() === 'owner') {
                     userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield" title="owner">★</span>`;
                 } else {
@@ -732,17 +681,15 @@
                 }
             }
 
-            // Load users, messages, start polling
             loadUsers();
             loadMessages();
             startPolling();
-
-            // Focus message input
             messageInput.focus();
             markAsSeen();
+            // If there's a PIN and the session is currently locked, we will show lock overlay via PIN system code below
         }
 
-        // Event listeners
+        // ========== Event wiring (unchanged) ==========
         loginTab.addEventListener('click', () => {
             loginTab.classList.add('bg-blue-600', 'text-white');
             loginTab.classList.remove('text-gray-300');
@@ -833,9 +780,7 @@
             }
         });
 
-        // user select (DM) handling
         function populateUserSelect() {
-            // preserve current selection
             const prev = userSelect.value || '';
             userSelect.innerHTML = '';
             const allOption = document.createElement('option');
@@ -844,14 +789,12 @@
             userSelect.appendChild(allOption);
 
             usersList.forEach(u => {
-                // do not include guest entries here; data_store only stores registered users
                 const opt = document.createElement('option');
                 opt.value = u.id;
                 opt.textContent = u.username;
                 userSelect.appendChild(opt);
             });
 
-            // restore previous if possible
             if (prev) {
                 const found = Array.from(userSelect.options).some(o => o.value === prev);
                 if (found) userSelect.value = prev;
@@ -861,7 +804,6 @@
         userSelect.addEventListener('change', () => {
             const val = userSelect.value;
             if (!val) {
-                // All
                 currentRecipient = null;
                 clearRecipientBtn.classList.add('hidden');
             } else {
@@ -874,7 +816,6 @@
                     clearRecipientBtn.classList.add('hidden');
                 }
             }
-            // reload visible messages
             loadMessages();
         });
 
@@ -885,31 +826,331 @@
             loadMessages();
         });
 
-        // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (currentUser) {
                 if (document.hidden) {
                     stopPolling();
                 } else {
-                    // reset badge and restart polling
                     markAsSeen();
-                    startPolling();
+                    // If unlocked, fetch messages immediately when switching back
+                    if (PinSystem && PinSystem.isUnlocked()) {
+                        loadMessages();
+                        startPolling();
+                    }
                 }
             }
         });
 
-        // Clicking the window focuses - mark as seen
         window.addEventListener('focus', () => {
             markAsSeen();
+            // If unlocked, fetch messages immediately on focus
+            if (PinSystem && PinSystem.isUnlocked()) {
+                loadMessages();
+            }
         });
 
-        // Initialize app
+        // ========== PIN SYSTEM ==========
+        // Encapsulate PIN behavior for clarity
+        const PinSystem = (function () {
+            const PIN_HASH_KEY = 'chat_pin_hash_v1'; // stored SHA-256 hex
+            const SESSION_UNLOCK_KEY = 'chat_pin_unlocked'; // sessionStorage flag
+            const INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
+
+            // DOM
+            const pinBtn = document.getElementById('pin-btn');
+            const lockNowBtn = document.getElementById('lock-now-btn');
+            const pinModal = document.getElementById('pin-modal');
+            const pinModalClose = document.getElementById('pin-modal-close');
+            const newPinInput = document.getElementById('new-pin');
+            const confirmPinInput = document.getElementById('confirm-pin');
+            const savePinBtn = document.getElementById('save-pin-btn');
+            const removePinBtn = document.getElementById('remove-pin-btn');
+            const pinModalMsg = document.getElementById('pin-modal-msg');
+
+            const lockOverlay = document.getElementById('lock-overlay');
+            const unlockPinInput = document.getElementById('unlock-pin-input');
+            const unlockBtn = document.getElementById('unlock-btn');
+            const unlockCancelBtn = document.getElementById('unlock-cancel-btn');
+            const unlockMsg = document.getElementById('unlock-msg');
+
+            let inactivityTimer = null;
+            let userActivityBound = false;
+
+            // helper: convert array buffer -> hex
+            function bufferToHex(buffer) {
+                const bytes = new Uint8Array(buffer);
+                return Array.prototype.map.call(bytes, x => ('00' + x.toString(16)).slice(-2)).join('');
+            }
+
+            // hash pin using crypto.subtle
+            async function hashPin(pin) {
+                const enc = new TextEncoder();
+                const data = enc.encode(pin);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                return bufferToHex(hashBuffer);
+            }
+
+            function pinExists() {
+                return !!localStorage.getItem(PIN_HASH_KEY);
+            }
+
+            async function savePin(pin) {
+                const h = await hashPin(pin);
+                localStorage.setItem(PIN_HASH_KEY, h);
+            }
+
+            function removePin() {
+                localStorage.removeItem(PIN_HASH_KEY);
+            }
+
+            async function verifyPin(pin) {
+                const stored = localStorage.getItem(PIN_HASH_KEY);
+                if (!stored) return false;
+                const h = await hashPin(pin);
+                return stored === h;
+            }
+
+            function sessionUnlock() {
+                sessionStorage.setItem(SESSION_UNLOCK_KEY, 'true');
+            }
+
+            function sessionLock() {
+                sessionStorage.removeItem(SESSION_UNLOCK_KEY);
+            }
+
+            function isSessionUnlocked() {
+                return sessionStorage.getItem(SESSION_UNLOCK_KEY) === 'true';
+            }
+
+            // UI helpers
+            function openModal() {
+                pinModal.classList.remove('hidden');
+                newPinInput.value = '';
+                confirmPinInput.value = '';
+                pinModalMsg.textContent = '';
+                setTimeout(() => newPinInput.focus(), 60);
+            }
+
+            function closeModal() {
+                pinModal.classList.add('hidden');
+            }
+
+            function showLockOverlay() {
+                // show overlay, pause app activity
+                lockOverlay.classList.remove('hidden');
+                unlockPinInput.value = '';
+                unlockMsg.textContent = '';
+                // visually blur/hide message content (the overlay backdrop does that)
+                stopPolling();
+            }
+
+            function hideLockOverlay() {
+                lockOverlay.classList.add('hidden');
+                unlockPinInput.value = '';
+                unlockMsg.textContent = '';
+            }
+
+            function enableUserActivityTracking() {
+                if (userActivityBound) return;
+                const resetTimer = () => resetInactivityTimer();
+                ['mousemove','keydown','click','touchstart'].forEach(evt => window.addEventListener(evt, resetTimer));
+                userActivityBound = true;
+                resetInactivityTimer();
+            }
+
+            function disableUserActivityTracking() {
+                if (!userActivityBound) return;
+                // we don't remove listeners for simplicity; they merely reset timer only when active
+                userActivityBound = false;
+                clearInactivityTimer();
+            }
+
+            function resetInactivityTimer() {
+                clearInactivityTimer();
+                inactivityTimer = setTimeout(() => {
+                    lock('inactivity');
+                }, INACTIVITY_MS);
+            }
+
+            function clearInactivityTimer() {
+                if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+            }
+
+            // lock/unlock logic
+            async function lock(reason = 'manual') {
+                // Only lock if a pin exists
+                if (!pinExists()) return;
+                sessionLock();
+                showLockOverlay();
+                // keep UI locked immediately; messages hidden under overlay
+                // stop polling already done in showLockOverlay
+                // (optionally clear sensitive UI) — we keep DOM but covered
+            }
+
+            async function unlock(pin) {
+                if (!pinExists()) {
+                    unlockMsg.textContent = 'No PIN is set.';
+                    return false;
+                }
+                const ok = await verifyPin(pin);
+                if (!ok) {
+                    unlockMsg.textContent = 'Incorrect PIN.';
+                    return false;
+                }
+                sessionUnlock();
+                hideLockOverlay();
+                // Immediately fetch messages & resume polling
+                loadMessages();
+                startPolling();
+                resetInactivityTimer();
+                return true;
+            }
+
+            function isUnlocked() {
+                // Only consider unlocked when pin is not set OR session unlocked
+                if (!pinExists()) return true;
+                return isSessionUnlocked();
+            }
+
+            // Initialization / wiring
+            function init() {
+                // Buttons
+                pinBtn.addEventListener('click', () => {
+                    openModal();
+                });
+
+                pinModalClose.addEventListener('click', closeModal);
+
+                savePinBtn.addEventListener('click', async () => {
+                    pinModalMsg.textContent = '';
+                    const p = newPinInput.value.trim();
+                    const c = confirmPinInput.value.trim();
+                    if (!/^\d{4,8}$/.test(p)) {
+                        pinModalMsg.textContent = 'PIN must be 4–8 digits.';
+                        return;
+                    }
+                    if (p !== c) {
+                        pinModalMsg.textContent = 'PINs do not match.';
+                        return;
+                    }
+                    await savePin(p);
+                    pinModalMsg.textContent = 'PIN saved — locking will now be active.';
+                    // After setting a pin, lock the session immediately for safety (optional)
+                    // We'll keep unlocked for the current session, but you probably want immediate lock:
+                    sessionUnlock(); // allow current session unlocked until a lock event occurs
+                    closeModal();
+                });
+
+                removePinBtn.addEventListener('click', () => {
+                    if (!pinExists()) {
+                        pinModalMsg.textContent = 'No PIN to remove.';
+                        return;
+                    }
+                    if (!confirm('Remove the PIN? This will disable locking.')) return;
+                    removePin();
+                    pinModalMsg.textContent = 'PIN removed.';
+                    sessionLock();
+                    closeModal();
+                });
+
+                // Manual Lock Now
+                lockNowBtn.addEventListener('click', async () => {
+                    if (!pinExists()) {
+                        if (!confirm('No PIN is set. Would you like to set a PIN now?')) {
+                            return;
+                        } else {
+                            openModal(); return;
+                        }
+                    }
+                    await lock('manual');
+                });
+
+                // Unlock overlay actions
+                unlockBtn.addEventListener('click', async () => {
+                    const candidate = unlockPinInput.value.trim();
+                    if (!candidate) {
+                        unlockMsg.textContent = 'Enter PIN.';
+                        return;
+                    }
+                    const ok = await unlock(candidate);
+                    if (ok) {
+                        unlockMsg.textContent = '';
+                    } else {
+                        // clear a bit on failure
+                        unlockPinInput.value = '';
+                    }
+                });
+
+                unlockCancelBtn.addEventListener('click', () => {
+                    // minimize overlay but keep lock visible — for this design we keep overlay shown
+                    // For safety we keep overlay visible; "Cancel" just clears input
+                    unlockPinInput.value = '';
+                    unlockMsg.textContent = '';
+                });
+
+                // Visibility changes -> autolock on tab switch if a PIN exists
+                document.addEventListener('visibilitychange', async () => {
+                    if (document.hidden) {
+                        // on leaving tab, autolock if pin set
+                        if (pinExists()) {
+                            await lock('switch-tab');
+                        }
+                    } else {
+                        // on returning to tab: if unlocked, fetch immediately
+                        if (isUnlocked()) {
+                            loadMessages();
+                            startPolling();
+                            resetInactivityTimer();
+                        } else {
+                            // site locked: show overlay and don't fetch
+                            showLockOverlay();
+                        }
+                    }
+                });
+
+                // On initial load: if a pin exists and the session is not unlocked -> show overlay
+                // But we will not force-lock if there's not a session unlock already; user will be required
+                // to unlock on next visibilitychange or manual lock. For stronger security, you can always lock on load.
+                if (pinExists() && !isSessionUnlocked()) {
+                    // show overlay now (so if they refresh they must unlock)
+                    showLockOverlay();
+                }
+
+                // Start inactivity tracking
+                enableUserActivityTracking();
+
+                // Reset inactivity timer on interactions
+                ['mousemove','keydown','click','touchstart'].forEach(evt => {
+                    window.addEventListener(evt, () => {
+                        if (isUnlocked()) resetInactivityTimer();
+                    }, { passive: true });
+                });
+
+                // If unlocked initially, set session unlocked and start polling when chat screen is visible
+                if (!pinExists()) {
+                    // nothing to do
+                }
+            }
+
+            // Expose a small API
+            return {
+                init,
+                lock,
+                unlock,
+                isUnlocked,
+                isSessionUnlocked
+            };
+        })();
+
+        // ========== Init App ==========
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             updateCharCount();
-            // default favicon and title
             setFavicon(DEFAULT_FAVICON);
             document.title = 'Google';
+
+            // Initialize PIN system
+            PinSystem.init();
         });
     </script>
 </body>
