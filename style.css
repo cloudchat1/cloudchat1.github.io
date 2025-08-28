@@ -1,0 +1,182 @@
+:root{
+    --dark-900: #0a0a0a;
+    --dark-800: #1a1a1a;
+    --dark-700: #2a2a2a;
+    --dark-600: #3a3a3a;
+    --dark-500: #4a4a4a;
+
+    --blue-500: #3b82f6;
+    --blue-600: #2563eb;
+    --blue-700: #1d4ed8;
+
+    --green-600: #16a34a;
+    --green-700: #15803d;
+
+    --red-600: #dc2626;
+    --red-700: #b91c1c;
+
+    --muted: #9ca3af;
+    --glass: rgba(255,255,255,0.03);
+
+    --radius-lg: 12px;
+    --shadow-xl: 0 10px 30px rgba(0,0,0,0.6);
+}
+
+/* Base */
+* { box-sizing: border-box; }
+html,body { height: 100%; }
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Chakra Petch', monospace;
+    background: var(--dark-900);
+    color: #e5e7eb;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+}
+
+/* Cards */
+.auth-card, .bg-dark-800 {
+    background: var(--dark-800);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--dark-600);
+}
+
+/* Inputs & buttons */
+input[type="text"], input[type="password"], select {
+    background: var(--dark-700);
+    border: 1px solid var(--dark-500);
+    color: #fff;
+    border-radius: 10px;
+    transition: box-shadow .15s ease, transform .12s ease;
+}
+
+input::placeholder { color: #9ca3af; }
+
+input:focus, select:focus, button:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
+}
+
+/* Buttons */
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    transition: transform .12s ease, background-color .12s ease, opacity .12s ease;
+}
+button:active { transform: translateY(1px); }
+button[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* Animations */
+.fade-in { animation: fadeIn .45s ease-in-out both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.message-appear { animation: messageAppear .28s ease-out both; }
+@keyframes messageAppear { from { opacity: 0; transform: translateX(-18px) scale(.975); } to { opacity: 1; transform: translateX(0) scale(1); } }
+
+/* Scrollbar */
+#messages-container { -webkit-overflow-scrolling: touch; }
+#messages-container::-webkit-scrollbar { width: 8px; height: 8px; }
+#messages-container::-webkit-scrollbar-track { background: var(--dark-800); }
+#messages-container::-webkit-scrollbar-thumb { background: var(--dark-500); border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); }
+#messages-container::-webkit-scrollbar-thumb:hover { background: #6a6a6a; }
+
+/* util */
+.hidden { display: none !important; }
+
+/* owner shield & badges */
+.owner-shield {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--dark-800); color: #fff; font-size: 12px; font-weight: 600; margin-left: 6px;
+}
+.dm-badge {
+    font-size: 11px; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,0.03);
+    color: #cbd5e1; border: 1px solid rgba(255,255,255,0.03); margin-left: 6px;
+}
+
+/* Auth error */
+#auth-error { display: block; font-weight: 600; }
+
+/* Message items */
+.message-item { padding: 8px 6px; border-radius: 10px; transition: background-color .12s ease; }
+.message-item:hover { background: rgba(255,255,255,0.015); }
+
+/* Avatar fallback */
+.message-item .w-8.h-8.rounded-full { min-width: 32px; min-height: 32px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; }
+
+/* Message delete button */
+.message-item button { min-width: 34px; padding: 6px 8px; }
+
+/* Top bar polish */
+#user-display { font-weight: 600; }
+
+/* Character color helpers toggled by JS */
+.text-red-400 { color: #fca5a5 !important; }
+.text-yellow-400 { color: #facc15 !important; }
+.text-gray-400 { color: #9ca3af !important; }
+
+/* Basic primary color classes if Tailwind not present */
+.bg-blue-600 { background: var(--blue-600) !important; }
+.bg-blue-700 { background: var(--blue-700) !important; }
+.bg-green-600 { background: var(--green-600) !important; }
+.bg-green-700 { background: var(--green-700) !important; }
+.bg-red-600 { background: var(--red-600) !important; }
+.bg-red-700 { background: var(--red-700) !important; }
+
+/* PIN Modal & Lock overlay styling (beautiful UI) */
+#pin-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(10,10,10,0.6), rgba(10,10,10,0.4));
+    backdrop-filter: blur(6px);
+}
+
+#pin-modal > div {
+    border: 1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+}
+
+#lock-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#lock-overlay > .absolute {
+    z-index: 40;
+}
+
+/* Lock overlay card */
+#lock-overlay .relative {
+    max-width: 720px;
+}
+
+/* Unlock input styling */
+#unlock-pin-input {
+    letter-spacing: 6px;
+}
+
+/* Modal subtle content */
+#pin-modal .placeholder-gray-400 { color: #9ca3af; }
+
+/* Responsiveness */
+@media (max-width: 640px) {
+    #lock-overlay .relative { margin: 0 16px; }
+    #pin-modal > div { width: calc(100% - 32px); }
+}
+
+/* Accessibility: keyboard focus */
+:focus { outline: 3px solid rgba(99,102,241,0.12); outline-offset: 2px; }
+
+/* Hover states */
+#login-tab:hover, #register-tab:hover { filter: brightness(1.06); }
+
+/* Small polish for modal buttons */
+#pin-modal button { border-radius: 8px; }
+
+/* Keep the overlay background subtle but protective */
+#lock-overlay .absolute { background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.65)); }
