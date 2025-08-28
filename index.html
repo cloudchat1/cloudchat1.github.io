@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatroom</title>
+    <title>Google</title>
+
+    <!-- Default favicon (Google logo as requested) -->
+    <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
 
     <!-- TailwindCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -88,6 +91,29 @@
 
         .hidden {
             display: none !important;
+        }
+
+        .owner-shield {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            background: #f6e05e; /* yellow */
+            color: #111827;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .dm-badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.05);
+            color: #cbd5e1;
+            border: 1px solid rgba(255,255,255,0.03);
         }
     </style>
 </head>
@@ -174,11 +200,24 @@
     <div id="chat-screen" class="min-h-screen flex flex-col hidden">
         <!-- User info and logout at top -->
         <div class="bg-dark-800 border-b border-dark-600 px-6 py-3 flex justify-between items-center">
-            <span id="user-display" class="text-gray-300"></span>
-            <button id="logout-btn" 
-                   class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors text-sm">
-                Logout
-            </button>
+            <div class="flex items-center space-x-4">
+                <span id="user-display" class="text-gray-300"></span>
+
+                <!-- Users dropdown for DM -->
+                <div>
+                    <select id="user-select" class="bg-dark-700 border border-dark-500 text-gray-200 rounded px-3 py-1">
+                        <option value="">All (global)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button id="clear-recipient-btn" class="text-xs text-gray-400 hover:text-white hidden">Clear DM</button>
+                <button id="logout-btn" 
+                       class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors text-sm">
+                    Logout
+                </button>
+            </div>
         </div>
 
         <div class="flex-1 flex flex-col">
@@ -224,14 +263,23 @@
     </div>
 
     <script>
+        // Configuration - Change this URL to your API endpoint
+        const API_BASE_URL = 'http://localhost:6969/api';
 
-        const API_BASE_URL = 'https://chat.nighthawk.work/api';
+        // FAVICON URLs
+        const DEFAULT_FAVICON = 'https://www.google.com/favicon.ico';
+        const NOTIF_FAVICON = 'https://cdn-icons-png.flaticon.com/512/1827/1827504.png'; // small bell-style icon
 
+        // Application state
         let currentUser = null;
         let lastMessageId = 0;
         let pollInterval = null;
         let config = { guest_login_enabled: true };
+        let usersList = []; // loaded from /api/users
+        let currentRecipient = null; // object {id, username} or null for All
+        let unseenCount = 0;
 
+        // DOM elements
         const authScreen = document.getElementById('auth-screen');
         const chatScreen = document.getElementById('chat-screen');
         const loginTab = document.getElementById('login-tab');
@@ -251,7 +299,11 @@
         const sendLoading = document.getElementById('send-loading');
         const charCount = document.getElementById('char-count');
         const emptyState = document.getElementById('empty-state');
+        const userSelect = document.getElementById('user-select');
+        const clearRecipientBtn = document.getElementById('clear-recipient-btn');
+        const faviconEl = document.getElementById('favicon');
 
+        // Utility functions
         function showError(message) {
             authError.textContent = message;
             authError.classList.remove('hidden');
@@ -266,10 +318,10 @@
 
         function formatTime(timestamp) {
             const date = new Date(timestamp);
-            return date.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                hour12: false 
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
             });
         }
 
@@ -303,6 +355,31 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
+        // favicon & notifications
+        function setFavicon(url) {
+            if (faviconEl) faviconEl.href = url;
+            else {
+                const link = document.createElement('link');
+                link.id = 'favicon';
+                link.rel = 'icon';
+                link.href = url;
+                document.head.appendChild(link);
+            }
+        }
+
+        function markAsSeen() {
+            unseenCount = 0;
+            setFavicon(DEFAULT_FAVICON);
+            document.title = 'Google';
+        }
+
+        function incrementUnread() {
+            unseenCount += 1;
+            setFavicon(NOTIF_FAVICON);
+            document.title = `(${unseenCount}) Google`;
+        }
+
+        // API functions
         async function apiRequest(endpoint, options = {}) {
             try {
                 const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -363,13 +440,14 @@
             return data.user;
         }
 
-        async function sendMessage(content) {
+        async function sendMessage(content, recipient_id = null) {
             const data = await apiRequest('/messages', {
                 method: 'POST',
                 body: JSON.stringify({
                     content,
                     user_id: currentUser.id,
-                    is_guest: currentUser.is_guest || false
+                    is_guest: currentUser.is_guest || false,
+                    recipient_id: recipient_id
                 })
             });
             return data.message;
@@ -385,20 +463,65 @@
             return data.messages;
         }
 
+        async function loadUsers() {
+            try {
+                const data = await apiRequest('/users');
+                usersList = data.users || [];
+                populateUserSelect();
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+
+        async function deleteMessageRequest(messageId) {
+            try {
+                const body = {
+                    requesting_user_id: currentUser && currentUser.id,
+                    requesting_username: currentUser && currentUser.username
+                };
+                const res = await apiRequest(`/messages/${messageId}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify(body)
+                });
+                return res;
+            } catch (err) {
+                console.error('Delete message failed:', err);
+                throw err;
+            }
+        }
+
+        // Message display functions
         function createMessageElement(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message-item fade-in';
             messageDiv.dataset.messageId = message.id;
 
             const isGuest = message.is_guest;
-            const avatarChar = isGuest ? 'G' : (message.username.length > 0 ? message.username[0].toUpperCase() : 'U');
+            const avatarChar = isGuest ? 'G' : (message.username && message.username.length > 0 ? message.username[0].toUpperCase() : 'U');
             const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
 
+            // owner shield
+            const ownerBadge = (message.username && message.username.toLowerCase() === 'owner')
+                ? `<span class="owner-shield" title="owner">★</span>`
+                : '';
+
+            // DM label if message is a DM
+            const dmLabel = (message.recipient_id != null)
+                ? `<span class="dm-badge">DM ${message.recipient_username ? '→ [' + escapeHtml(message.recipient_username) + ']' : ''}</span>`
+                : '';
+
+            // Delete button (visible if current user is owner or the message author)
+            let deleteButtonHtml = '';
+            if (currentUser && (currentUser.username && currentUser.username.toLowerCase() === 'owner' || message.user_id === currentUser.id)) {
+                deleteButtonHtml = `<button data-delete-id="${message.id}" class="ml-3 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white">Delete</button>`;
+            }
+
+            // Display name (with owner's shield if applicable)
             messageDiv.innerHTML = `
                 <div class="flex items-start space-x-3">
                     <div class="flex-shrink-0">
                         <div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">
-                            ${avatarChar}
+                            ${escapeHtml(avatarChar)}
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -406,9 +529,12 @@
                             <span class="font-medium text-white">
                                 ${escapeHtml(message.display_name)}
                             </span>
+                            ${ownerBadge}
                             <span class="text-xs text-gray-400">
                                 ${formatTime(message.timestamp)}
                             </span>
+                            <span class="ml-2">${dmLabel}</span>
+                            ${deleteButtonHtml}
                         </div>
                         <div class="text-gray-300 break-words">
                             ${escapeHtml(message.content)}
@@ -417,12 +543,91 @@
                 </div>
             `;
 
+            // attach delete handler if button exists
+            const btn = messageDiv.querySelector('button[data-delete-id]');
+            if (btn) {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(btn.getAttribute('data-delete-id'), 10);
+                    if (!confirm('Delete this message?')) return;
+                    try {
+                        await deleteMessageRequest(id);
+                        removeMessageElement(id);
+                    } catch (err) {
+                        showError('Failed to delete message');
+                    }
+                });
+            }
+
             return messageDiv;
         }
 
-        function addMessage(message) {
+        function removeMessageElement(messageId) {
+            const el = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        }
 
+        function messageMatchesCurrentView(message) {
+            // If currentRecipient is null -> show messages that are not DM-only to other people (global + DMs involving current user)
+            if (!currentRecipient) {
+                // show messages which are:
+                // - not a DM (recipient_id == null)
+                // - OR a DM where currentUser is sender or recipient
+                if (message.recipient_id == null) return true;
+                if (!currentUser) return false;
+                return (message.user_id === currentUser.id) || (message.recipient_id === currentUser.id);
+            } else {
+                // We are viewing a DM thread with currentRecipient:
+                // Show messages where (sender==currentUser && recipient==currentRecipient) OR (sender==currentRecipient && recipient==currentUser)
+                if (!currentUser) return false;
+                const a = currentUser.id;
+                const b = currentRecipient.id;
+                return (message.user_id === a && message.recipient_id === b) ||
+                       (message.user_id === b && message.recipient_id === a);
+            }
+        }
+
+        function clearMessages() {
+            messagesContainer.innerHTML = '';
+        }
+
+        function renderMessages(allMessages) {
+            clearMessages();
+            if (!allMessages || allMessages.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            let anyShown = false;
+            allMessages.forEach(message => {
+                if (messageMatchesCurrentView(message)) {
+                    addMessage(message, /*scroll=*/false);
+                    anyShown = true;
+                }
+            });
+
+            if (!anyShown) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            scrollToBottom();
+        }
+
+        function addMessage(message, scroll = true) {
+            // Avoid duplicates
             if (document.querySelector(`[data-message-id="${message.id}"]`)) {
+                return;
+            }
+
+            if (!messageMatchesCurrentView(message)) {
+                // If we are hidden, and the user is not focused, increment unread
+                if (document.hidden && currentUser) {
+                    // Only increment if the incoming message is relevant to the user (global or DM to them)
+                    const relevant = (!message.recipient_id) || (message.recipient_id === currentUser.id) || (message.user_id === currentUser.id);
+                    if (relevant) incrementUnread();
+                }
                 return;
             }
 
@@ -431,23 +636,24 @@
             const messageElement = createMessageElement(message);
             messagesContainer.appendChild(messageElement);
 
+            // Trigger animation
             setTimeout(() => {
                 messageElement.classList.add('message-appear');
             }, 10);
 
+            // Update last message ID
             lastMessageId = Math.max(lastMessageId, message.id);
 
-            scrollToBottom();
+            if (scroll) scrollToBottom();
         }
 
         function loadMessages() {
             fetchRecentMessages()
                 .then(messages => {
-                    if (messages.length === 0) {
+                    if (!messages || messages.length === 0) {
                         emptyState.classList.remove('hidden');
                     } else {
-                        emptyState.classList.add('hidden');
-                        messages.forEach(addMessage);
+                        renderMessages(messages);
                     }
                 })
                 .catch(error => {
@@ -456,10 +662,15 @@
         }
 
         function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
             pollInterval = setInterval(() => {
                 fetchMessages()
                     .then(messages => {
-                        messages.forEach(addMessage);
+                        messages.forEach(m => {
+                            addMessage(m);
+                        });
+                        // Also lightly refresh users (in case of new accounts)
+                        loadUsers();
                     })
                     .catch(error => {
                         console.error('Polling error:', error);
@@ -474,11 +685,13 @@
             }
         }
 
+        // Auth functions
         function showAuthScreen() {
             authScreen.classList.remove('hidden');
             chatScreen.classList.add('hidden');
             currentUser = null;
             stopPolling();
+            markAsSeen();
         }
 
         function showChatScreen(user) {
@@ -486,18 +699,29 @@
             authScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
 
+            // Update user display
             if (user.is_guest) {
-                userDisplay.textContent = '[guest]';
+                userDisplay.innerHTML = '[guest]';
             } else {
-                userDisplay.textContent = `[${user.username}]`;
+                // show owner shield in top display if this is owner
+                if (user.username && user.username.toLowerCase() === 'owner') {
+                    userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield" title="owner">★</span>`;
+                } else {
+                    userDisplay.textContent = `[${user.username}]`;
+                }
             }
 
+            // Load users, messages, start polling
+            loadUsers();
             loadMessages();
             startPolling();
 
+            // Focus message input
             messageInput.focus();
+            markAsSeen();
         }
 
+        // Event listeners
         loginTab.addEventListener('click', () => {
             loginTab.classList.add('bg-blue-600', 'text-white');
             loginTab.classList.remove('text-gray-300');
@@ -566,7 +790,8 @@
             setLoading(true);
 
             try {
-                const message = await sendMessage(content);
+                const recipient_id = currentRecipient ? currentRecipient.id : null;
+                const message = await sendMessage(content, recipient_id);
                 messageInput.value = '';
                 updateCharCount();
                 addMessage(message);
@@ -587,19 +812,83 @@
             }
         });
 
+        // user select (DM) handling
+        function populateUserSelect() {
+            // preserve current selection
+            const prev = userSelect.value || '';
+            userSelect.innerHTML = '';
+            const allOption = document.createElement('option');
+            allOption.value = '';
+            allOption.textContent = 'All (global)';
+            userSelect.appendChild(allOption);
+
+            usersList.forEach(u => {
+                // do not include guest entries here; data_store only stores registered users
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.textContent = u.username;
+                userSelect.appendChild(opt);
+            });
+
+            // restore previous if possible
+            if (prev) {
+                const found = Array.from(userSelect.options).some(o => o.value === prev);
+                if (found) userSelect.value = prev;
+            }
+        }
+
+        userSelect.addEventListener('change', () => {
+            const val = userSelect.value;
+            if (!val) {
+                // All
+                currentRecipient = null;
+                clearRecipientBtn.classList.add('hidden');
+            } else {
+                const u = usersList.find(x => String(x.id) === String(val));
+                if (u) {
+                    currentRecipient = { id: u.id, username: u.username };
+                    clearRecipientBtn.classList.remove('hidden');
+                } else {
+                    currentRecipient = null;
+                    clearRecipientBtn.classList.add('hidden');
+                }
+            }
+            // reload visible messages
+            loadMessages();
+        });
+
+        clearRecipientBtn.addEventListener('click', () => {
+            currentRecipient = null;
+            userSelect.value = '';
+            clearRecipientBtn.classList.add('hidden');
+            loadMessages();
+        });
+
+        // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (currentUser) {
                 if (document.hidden) {
                     stopPolling();
                 } else {
+                    // reset badge and restart polling
+                    markAsSeen();
                     startPolling();
                 }
             }
         });
 
+        // Clicking the window focuses - mark as seen
+        window.addEventListener('focus', () => {
+            markAsSeen();
+        });
+
+        // Initialize app
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             updateCharCount();
+            // default favicon and title
+            setFavicon(DEFAULT_FAVICON);
+            document.title = 'Google';
         });
     </script>
 </body>
