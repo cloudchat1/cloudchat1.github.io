@@ -15,7 +15,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
-
+    <link 
+        rel="stylesheet" 
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
     <script>
         tailwind.config = {
             theme: {
@@ -501,19 +504,12 @@
             const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
 
             const ownerBadge = (message.username && message.username.toLowerCase() === 'owner')
-                ? `
-                    <svg xmlns="http://www.w3.org/2000/svg" 
-                        class="owner-shield h-4 w-4 text-white inline-block ml-1" 
-                        viewBox="0 0 24 24" 
-                        fill="currentColor" 
-                        title="owner">
-                        <path d="M12 2L4 5v6c0 5.25 3.438 10.688 8 12 
-                                4.562-1.312 8-6.75 8-12V5l-8-3z"/>
-                    </svg>
-                `
+                ? `<i class="fas fa-shield-alt text-white ml-1" title="owner"></i>`
                 : '';
 
+
             // DM label if message is a DM
+
             const dmLabel = (message.recipient_id != null)
                 ? `<span class="dm-badge">DM ${message.recipient_username ? '→ [' + escapeHtml(message.recipient_username) + ']' : ''}</span>`
                 : '';
