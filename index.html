@@ -476,7 +476,7 @@
             else { sendText.classList.remove('hidden'); sendLoading.classList.add('hidden'); }
         }
 
-        function scrollToBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
+        function scrollToBottom() { window.scrollTo(0, document.body.scrollHeight); }
 
         function setFavicon(url) {
             if (faviconEl) faviconEl.href = url;
