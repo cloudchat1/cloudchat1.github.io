@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Google</title>
+    <title>Online Notepad</title>
 
     <!-- Favicon -->
-    <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
+    <link id="favicon" rel="icon" href="https://onlinenotepad.org/favicon.ico">
 
     <!-- Tailwind (keeps your utility classes) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -412,7 +412,7 @@
     <script>
 
         const API_BASE_URL = 'https://chat.nighthawk.work/api';
-        const DEFAULT_FAVICON = 'https://www.google.com/favicon.ico';
+        const DEFAULT_FAVICON = 'https://onlinenotepad.org/favicon.ico';
         const NOTIF_FAVICON = 'https://cdn-icons-png.flaticon.com/512/1827/1827504.png';
 
         let currentUser = null;
@@ -1269,7 +1269,7 @@
             loadConfig();
             updateCharCount();
             setFavicon(DEFAULT_FAVICON);
-            document.title = 'Google';
+            document.title = 'Online Notepad';
 
             if (window.PinSystem && window.PinSystem.init) PinSystem.init();
         });
