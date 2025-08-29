@@ -44,7 +44,6 @@
             --shadow-xl: 0 10px 30px rgba(0,0,0,0.6);
         }
 
-        /* Base */
         * { box-sizing: border-box; }
         html, body { height: 100%; }
         body {
@@ -58,7 +57,6 @@
             min-height: 100vh;
         }
 
-        /* Cards & inputs */
         .bg-dark-800 { background: var(--dark-800) !important; }
         .bg-dark-700 { background: var(--dark-700) !important; }
         .bg-dark-900 { background: var(--dark-900) !important; }
@@ -84,7 +82,6 @@
             box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
         }
 
-        /* Buttons */
         button {
             cursor: pointer;
             border: none;
@@ -94,14 +91,12 @@
         button:active { transform: translateY(1px); }
         button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-        /* Animations */
         .fade-in { animation: fadeIn .45s ease-in-out both; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .message-appear { animation: messageAppear .28s ease-out both; }
         @keyframes messageAppear { from { opacity: 0; transform: translateX(-18px) scale(.975); } to { opacity: 1; transform: translateX(0) scale(1); } }
 
-        /* Scrollbar */
         #messages-container { -webkit-overflow-scrolling: touch; }
         #messages-container::-webkit-scrollbar { width: 8px; height: 8px; }
         #messages-container::-webkit-scrollbar-track { background: var(--dark-800); }
@@ -122,7 +117,6 @@
         .message-item { padding: 8px 6px; border-radius: 10px; transition: background-color .12s ease; }
         .message-item:hover { background: rgba(255,255,255,0.015); }
 
-        /* small responsive fixes */
         @media (max-width: 640px) {
             .message-item { padding: 10px; border-radius: 8px; }
         }
@@ -138,11 +132,6 @@
         .bg-red-600 { background: var(--red-600) !important; }
         .bg-red-700 { background: var(--red-700) !important; }
 
-        /* ============================
-           PIN Modal & Fullscreen Lock
-           ============================ */
-
-        /* Modal: centered in screen, neutral colors from theme */
         #pin-modal {
             display: flex;
             align-items: center;
@@ -158,14 +147,11 @@
             border-radius: 18px;
         }
 
-        /* Full-screen lock overlay: covers entire viewport and blocks interaction */
         #lock-overlay { display: none; }
         #lock-overlay:not(.hidden) { display: block; position: fixed; inset: 0; z-index: 9999; }
 
-        /* overlay background (dim + blur) */
         #lock-overlay > .absolute { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.818); backdrop-filter: blur(50px); }
 
-        /* lock panel */
         #lock-overlay .relative > .w-full {
             background: linear-gradient(180deg, var(--dark-800), var(--dark-700));
             border: 1px solid rgba(255,255,255,0.03);
@@ -173,7 +159,6 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.7);
         }
 
-        /* PIN boxes container */
         #pin-boxes {
             display: flex;
             justify-content: center;
@@ -181,7 +166,6 @@
             margin: 12px 0;
         }
 
-        /* each big box */
         .pin-box {
             width: 4rem;
             height: 4rem;
@@ -198,19 +182,16 @@
             -webkit-user-select: none;
         }
 
-        /* larger on medium screens */
         @media (min-width: 768px) {
             .pin-box { width: 5rem; height: 5rem; font-size: 2rem; border-radius: 14px; }
         }
 
-        /* filled state */
         .pin-box.filled {
             background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
             box-shadow: 0 4px 18px rgba(0,0,0,0.5) inset;
             transform: translateY(-2px);
         }
 
-        /* shake animation on wrong PIN */
         @keyframes shakeX {
             0% { transform: translateX(0); }
             20% { transform: translateX(-8px); }
@@ -221,39 +202,29 @@
         }
         #pin-boxes.shake { animation: shakeX .42s ease; }
 
-        /* hidden input (off-screen) */
         #pin-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
-        /* overlay messages */
         #unlock-msg { color: var(--muted); margin-top: 8px; min-height: 1em; }
 
-        /* smaller screens: stack buttons */
         @media (max-width: 420px) {
             #pin-boxes { gap: 8px; }
             .pin-box { width: 3.2rem; height: 3.2rem; font-size: 1.2rem; }
         }
 
-        /* subtle focus ring for accessibility */
         .pin-box:focus { outline: 2px solid rgba(99,102,241,0.12); outline-offset: 3px; }
 
-        /* center everything nicely on small viewports */
         #lock-overlay .relative { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
 
-        /* pin modal inputs */
         #pin-setup-input, #pin-setup-confirm, #pin-dummy-input, #pin-dummy-confirm {
             letter-spacing: 6px;
         }
 
-        /* modal buttons rounded */
         #pin-modal button { border-radius: 10px; }
 
-        /* small helper text */
         #pin-setup-msg, #unlock-msg { color: #9ca3af; }
 
-        /* helpful pointer cursor for boxes */
         .pin-box { cursor: text; }
 
-        /* Notes app inside lock overlay */
         .notes-app .notes-sidebar { min-width: 220px; }
         .note-item { transition: background .12s ease; }
         .note-item:hover { background: rgba(255,255,255,0.02); }
@@ -439,7 +410,7 @@
     </div>
 
     <script>
-        // ========== Basic App Config & Elements ==========
+
         const API_BASE_URL = 'https://chat.nighthawk.work/api';
         const DEFAULT_FAVICON = 'https://www.google.com/favicon.ico';
         const NOTIF_FAVICON = 'https://cdn-icons-png.flaticon.com/512/1827/1827504.png';
@@ -519,11 +490,10 @@
         }
         function incrementUnread() { unseenCount += 1; setFavicon(NOTIF_FAVICON); document.title = `(${unseenCount}) Google`; }
 
-        // ========== API stubs (same as original; stubbed for demo) ==========
         async function apiRequest(endpoint, options = {}) {
-            // stubbed: simulate JSON response for demo purposes if API not available
+
             try {
-                // If API_BASE_URL is unreachable, this will throw; keep behavior minimal
+
                 const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -534,7 +504,7 @@
                 return data;
             } catch (err) {
                 console.warn('API request failed (stubbed):', err);
-                // Provide safe empty shapes so UI still works locally
+
                 if (endpoint.startsWith('/config')) return { guest_login_enabled: true };
                 if (endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register') || endpoint.startsWith('/auth/guest')) {
                     return { user: { id: Date.now(), username: 'guest-' + Math.floor(Math.random()*9999), is_guest: true } };
@@ -584,7 +554,6 @@
             } catch (err) { console.error('Delete message failed:', err); throw err; }
         }
 
-        // ========== Message display ==========
         function createMessageElement(message) {
             const d = document.createElement('div');
             d.className = 'message-item fade-in';
@@ -679,7 +648,6 @@
         }
         function stopPolling() { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } }
 
-        // ========== Auth UI wiring ==========
         function showAuthScreen() { authScreen.classList.remove('hidden'); chatScreen.classList.add('hidden'); currentUser = null; stopPolling(); markAsSeen(); }
         function showChatScreen(user) {
             currentUser = user;
@@ -757,7 +725,6 @@
 
         window.addEventListener('focus', () => { markAsSeen(); if (window.PinSystem && PinSystem.isUnlocked()) loadMessages(); });
 
-        // ========== NOTES APP (global opener available) ==========
         (function notesAppModule() {
             const NOTES_KEY = 'notes_app_v1';
             const lockPanel = document.getElementById('lock-panel');
@@ -785,19 +752,17 @@
                 };
             }
 
-            // expose globally so PinSystem can call it
             window.openNotesMode = function openNotesMode() {
                 const notes = loadNotesFromStorage();
-                // ensure at least one sample note
+
                 if (!notes || notes.length === 0) {
                     const sample = createNoteObject();
-                    sample.title = 'Quick Note';
-                    sample.content = 'This is a dummy notes app. Your notes are stored locally in your browser (localStorage).';
+                    sample.title = 'Weekly Assignments';
+                    sample.content = 'DUE NEXT WEDNESDAY: ';
                     notes.push(sample);
                     saveNotesToStorage(notes);
                 }
 
-                // Replace lockPanel content with notes UI
                 lockPanel.innerHTML = `
                     <div class="notes-app w-full">
                         <div class="flex gap-4">
@@ -827,7 +792,6 @@
                     </div>
                 `;
 
-                // Wire UI
                 const notesListEl = document.getElementById('notes-list');
                 const titleEl = document.getElementById('note-title');
                 const contentEl = document.getElementById('note-content');
@@ -904,7 +868,6 @@
                     loadNoteIntoEditor(currentNoteId);
                 }
 
-                // autosave (debounced)
                 let autosaveTimer = null;
                 function scheduleAutosave() {
                     clearTimeout(autosaveTimer);
@@ -915,7 +878,6 @@
                     }, 700);
                 }
 
-                // new note
                 newBtn.addEventListener('click', () => {
                     const n = createNoteObject();
                     notesState.unshift(n);
@@ -934,7 +896,7 @@
                 });
 
                 closeBtn.addEventListener('click', () => {
-                    // reload page to restore original listeners and lock panel structure
+
                     window.location.reload();
                 });
 
@@ -942,25 +904,22 @@
                 contentEl.addEventListener('input', scheduleAutosave);
                 searchEl.addEventListener('input', () => renderList(searchEl.value || ''));
 
-                // show initial list and editor
                 renderList();
                 loadNoteIntoEditor(currentNoteId);
             };
 
-            // Also allow event-based opener (PinSystem may dispatch this)
             document.addEventListener('dummyPinMatched', (e) => {
                 window.openNotesMode && window.openNotesMode();
             });
         })();
 
-        // ========== PIN SYSTEM (box-style) with Dummy PIN support ==========
         (function () {
             const PIN_HASH_KEY = 'chat_pin_hash_v2';
             const PIN_LENGTH_KEY = 'chat_pin_length_v2';
             const DUMMY_PIN_HASH_KEY = 'chat_dummy_pin_hash_v2';
             const DUMMY_PIN_LENGTH_KEY = 'chat_dummy_pin_length_v2';
             const SESSION_UNLOCK_KEY = 'chat_pin_unlocked_v2';
-            const INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
+            const INACTIVITY_MS = 5 * 60 * 1000; 
 
             const pinBtn = document.getElementById('pin-btn');
             const lockNowBtn = document.getElementById('lock-now-btn');
@@ -978,11 +937,11 @@
             const pinBoxesContainer = document.getElementById('pin-boxes');
             const pinHidden = document.getElementById('pin-hidden');
             const unlockBtn = document.getElementById('unlock-btn');
-            const unlockCancelBtn = document.getElementById('unlock-cancel-btn'); // optional; may be null
+            const unlockCancelBtn = document.getElementById('unlock-cancel-btn'); 
             const unlockMsg = document.getElementById('unlock-msg');
 
             let inactivityTimer = null;
-            let inputElems = []; // array of inputs for current lock
+            let inputElems = []; 
             let currentLength = 4;
 
             function bufferToHex(buffer) {
@@ -997,7 +956,6 @@
                 return bufferToHex(hashBuffer);
             }
 
-            // PIN existence and storage
             function pinExists() { return !!localStorage.getItem(PIN_HASH_KEY); }
             function getStoredPinLength() { return parseInt(localStorage.getItem(PIN_LENGTH_KEY) || '4', 10); }
             async function savePin(pin) {
@@ -1021,7 +979,7 @@
             function removePin() {
                 localStorage.removeItem(PIN_HASH_KEY);
                 localStorage.removeItem(PIN_LENGTH_KEY);
-                // also remove dummy when removing main pin
+
                 removeDummyPin();
             }
 
@@ -1043,7 +1001,6 @@
             function isSessionUnlocked() { return sessionStorage.getItem(SESSION_UNLOCK_KEY) === 'true'; }
             function isUnlocked() { if (!pinExists()) return true; return isSessionUnlocked(); }
 
-            // Build big boxes for length
             function buildPinBoxes(len) {
                 pinBoxesContainer.innerHTML = '';
                 inputElems = [];
@@ -1058,48 +1015,45 @@
                     inputElems.push(box);
                 }
 
-                // focus behaviour: we use a hidden input to receive keyboard input (helps on mobile)
                 pinHidden.value = '';
-                // allow typing up to the larger of PIN length or dummy length (so paste of dummy works)
+
                 pinHidden.setAttribute('maxlength', Math.max(currentLength, getStoredDummyLength() || 0));
                 pinHidden.focus();
 
-                // keyboard handling: when user types digits, fill successive boxes
                 pinHidden.oninput = (e) => {
                     const val = pinHidden.value.replace(/\D/g, '');
                     const clampLen = Math.max(currentLength, getStoredDummyLength() || 0);
-                    pinHidden.value = val.slice(0, clampLen); // clamp
+                    pinHidden.value = val.slice(0, clampLen); 
                     const displayVal = pinHidden.value.slice(0, currentLength);
                     for (let i = 0; i < currentLength; i++) {
                         inputElems[i].textContent = displayVal[i] || '';
                         inputElems[i].classList.toggle('filled', !!displayVal[i]);
                     }
-                    // If typed length matches dummy length and dummy exists, check dummy
+
                     (async () => {
                         const typed = pinHidden.value.replace(/\D/g, '');
                         if (dummyExists() && typed.length === getStoredDummyLength()) {
                             const okDummy = await verifyDummyPin(typed);
                             if (okDummy) {
-                                // open notes app (non-destructive)
+
                                 if (typeof window.openNotesMode === 'function') {
                                     window.openNotesMode();
                                 } else {
                                     document.dispatchEvent(new CustomEvent('dummyPinMatched', { detail: { pin: typed } }));
                                 }
-                                // clear input
+
                                 pinHidden.value = '';
                                 inputElems.forEach(b => b.textContent = '');
                                 return;
                             }
                         }
-                        // If typed length equals actual PIN length, attempt normal unlock
+
                         if (typed.length >= currentLength) {
                             attemptUnlock(typed.slice(0, currentLength));
                         }
                     })();
                 };
 
-                // support paste into hidden
                 pinHidden.onpaste = (e) => {
                     e.preventDefault();
                     const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, Math.max(currentLength, getStoredDummyLength() || 0));
@@ -1107,20 +1061,18 @@
                     pinHidden.dispatchEvent(new Event('input'));
                 };
 
-                // support focusing hidden if user clicks any box
                 inputElems.forEach((box, idx) => {
                     box.addEventListener('click', () => {
                         pinHidden.focus();
-                        // position caret at end
+
                         pinHidden.selectionStart = pinHidden.selectionEnd = pinHidden.value.length;
                     });
                 });
             }
 
-            // attempt unlock: first check dummy -> notes, else check real PIN -> unlock
             async function attemptUnlock(candidate) {
                 unlockMsg.textContent = '';
-                // check dummy first
+
                 if (dummyExists()) {
                     const isDummy = await verifyDummyPin(candidate);
                     if (isDummy) {
@@ -1135,7 +1087,6 @@
                     }
                 }
 
-                // Now check real PIN
                 if (!pinExists()) { unlockMsg.textContent = 'No PIN set.'; return; }
                 const ok = await verifyPin(candidate);
                 if (ok) {
@@ -1145,7 +1096,7 @@
                     startPolling && typeof startPolling === 'function' && startPolling();
                     resetInactivityTimer();
                 } else {
-                    // shake animation & clear input
+
                     unlockMsg.textContent = 'Incorrect PIN';
                     pinBoxesContainer.classList.add('shake');
                     setTimeout(() => pinBoxesContainer.classList.remove('shake'), 420);
@@ -1167,7 +1118,6 @@
                 inputElems.forEach(b => b.textContent = '');
             }
 
-            // manual lock action
             async function lockNow() {
                 if (!pinExists()) {
                     if (!confirm('No PIN set. Would you like to set one now?')) return;
@@ -1178,7 +1128,6 @@
                 showOverlay();
             }
 
-            // inactivity tracking
             let activityBound = false;
             function startActivityTracking() {
                 if (activityBound) return;
@@ -1190,7 +1139,6 @@
             function resetInactivityTimer() { clearInactivityTimer(); inactivityTimer = setTimeout(() => { sessionLock(); showOverlay(); }, INACTIVITY_MS); }
             function clearInactivityTimer() { if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; } }
 
-            // modal UI
             function openModal() {
                 pinSetupInput.value = '';
                 pinSetupConfirm.value = '';
@@ -1202,7 +1150,6 @@
             }
             function closeModal() { pinModal.classList.add('hidden'); }
 
-            // wiring
             pinBtn.addEventListener('click', openModal);
             pinModalClose.addEventListener('click', closeModal);
 
@@ -1213,11 +1160,9 @@
                 const da = pinDummyInput.value.trim();
                 const db = pinDummyConfirm.value.trim();
 
-                // validate main PIN
                 if (!/^\d{4,8}$/.test(a)) { pinSetupMsg.textContent = 'PIN must be 4–8 digits.'; return; }
                 if (a !== b) { pinSetupMsg.textContent = 'PINs do not match.'; return; }
 
-                // validate dummy if provided
                 if (da || db) {
                     if (!/^\d{4,8}$/.test(da)) { pinSetupMsg.textContent = 'Dummy PIN must be 4–8 digits.'; return; }
                     if (da !== db) { pinSetupMsg.textContent = 'Dummy PINs do not match.'; return; }
@@ -1230,11 +1175,11 @@
                         await saveDummyPin(da);
                         pinSetupMsg.textContent = 'PIN and dummy PIN saved.';
                     } else {
-                        // if dummy inputs left blank, remove any stored dummy
+
                         removeDummyPin();
                         pinSetupMsg.textContent = 'PIN saved. Dummy PIN removed (if any).';
                     }
-                    // keep session unlocked for now
+
                     sessionUnlock();
                     closeModal();
                 } catch (err) {
@@ -1259,7 +1204,7 @@
                 const normalized = val.replace(/\D/g, '');
                 if (!normalized || normalized.length < (getStoredPinLength() || 4)) {
                     if (dummyExists() && normalized.length >= getStoredDummyLength()) {
-                        // handled by input oninput; nothing to do here
+
                         unlockMsg.textContent = 'Checking...';
                         return;
                     }
@@ -1272,14 +1217,13 @@
 
             if (unlockCancelBtn) {
                 unlockCancelBtn.addEventListener('click', () => {
-                    // clear input but keep overlay visible
+
                     pinHidden.value = '';
                     inputElems.forEach(b => b.textContent = '');
                     unlockMsg.textContent = '';
                 });
             }
 
-            // autolock on tab switch
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
                     if (pinExists()) {
@@ -1296,7 +1240,6 @@
                 }
             });
 
-            // handle paste into the document (for convenience)
             document.addEventListener('paste', (e) => {
                 if (!lockOverlay.classList.contains('hidden')) {
                     const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
@@ -1306,12 +1249,10 @@
                 }
             });
 
-            // On load: if a PIN exists and session not unlocked -> show overlay so reload requires PIN
             if (pinExists() && !isSessionUnlocked()) {
                 showOverlay();
             }
 
-            // expose small API for other code
             window.PinSystem = {
                 isUnlocked,
                 showOverlayIfLocked: () => { if (!isUnlocked()) showOverlay(); },
@@ -1320,12 +1261,10 @@
                 dummyExists
             };
 
-            // start tracking
             startActivityTracking();
             resetInactivityTimer();
         })();
 
-        // ========== initialize app on DOM ready ==========
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             updateCharCount();
