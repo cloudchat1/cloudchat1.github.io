@@ -22,6 +22,14 @@
     <script src="lock.js"></script>
 
     <script>
+        document.addEventListener("DOMContentLoaded", () => {
+        if (window.PinSystem && window.PinSystem.init) {
+            PinSystem.init();
+        }
+        });
+    </script>
+
+    <script>
         tailwind.config = {
             theme: {
                 extend: {
