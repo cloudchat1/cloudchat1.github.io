@@ -486,9 +486,9 @@
         }
 
         function markAsSeen() {
-            unseenCount = 0; setFavicon(DEFAULT_FAVICON); document.title = 'Google';
+            unseenCount = 0; setFavicon(DEFAULT_FAVICON); document.title = 'Online Notepad';
         }
-        function incrementUnread() { unseenCount += 1; setFavicon(NOTIF_FAVICON); document.title = `(${unseenCount}) Google`; }
+        function incrementUnread() { unseenCount += 1; setFavicon(NOTIF_FAVICON); document.title = `(${unseenCount}) Online Notepad`; }
 
         async function apiRequest(endpoint, options = {}) {
 
