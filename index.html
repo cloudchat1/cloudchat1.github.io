@@ -19,15 +19,6 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <link rel="stylesheet" href="style.css">
-    <script src="lock.js"></script>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-        if (window.PinSystem && window.PinSystem.init) {
-            PinSystem.init();
-        }
-        });
-    </script>
 
     <script>
         tailwind.config = {
@@ -199,6 +190,7 @@
 
                 <div class="flex items-center justify-center gap-3">
                     <button id="unlock-btn" class="px-6 py-3 rounded bg-blue-600 hover:bg-blue-700 text-white">Unlock</button>
+                    <button id="unlock-cancel-btn" class="px-6 py-3 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancel</button>
                 </div>
 
                 <div id="unlock-msg" class="mt-4 text-sm text-gray-400"></div>
@@ -715,9 +707,16 @@
             updateCharCount();
             setFavicon(DEFAULT_FAVICON);
             document.title = 'Online Notepad';
-
-            if (window.PinSystem && window.PinSystem.init) PinSystem.init();
         });
+    </script>
+
+    <!-- Load lock.js after DOM is ready -->
+    <script src="lock.js"></script>
+    <script>
+        // Initialize lock system after everything is loaded
+        if (window.PinSystem && window.PinSystem.init) {
+            window.PinSystem.init();
+        }
     </script>
 </body>
 </html>
