@@ -1,210 +1,367 @@
-:root{
-    --dark-900: #0a0a0a;
-    --dark-800: #1a1a1a;
-    --dark-700: #2a2a2a;
-    --dark-600: #3a3a3a;
-    --dark-500: #4a4a4a;
+(function () {
+    'use strict';
 
-    --blue-500: #3b82f6;
-    --blue-600: #2563eb;
-    --blue-700: #1d4ed8;
+    // Keys used in local/session storage
+    const PIN_HASH_KEY = 'chat_pin_hash_v2';
+    const PIN_LENGTH_KEY = 'chat_pin_length_v2';
+    const DUMMY_PIN_HASH_KEY = 'chat_dummy_pin_hash_v2';
+    const DUMMY_PIN_LENGTH_KEY = 'chat_dummy_pin_length_v2';
+    const SESSION_UNLOCK_KEY = 'chat_pin_unlocked_v2';
 
-    --green-600: #16a34a;
-    --green-700: #15803d;
+    // How long of inactivity before auto-lock (ms)
+    const INACTIVITY_MS = 5 * 60 * 1000;
 
-    --red-600: #dc2626;
-    --red-700: #b91c1c;
+    // DOM elements (expected to exist in the page)
+    const pinBtn = document.getElementById('pin-btn');
+    const lockNowBtn = document.getElementById('lock-now-btn');
+    const pinModal = document.getElementById('pin-modal');
+    const pinModalClose = document.getElementById('pin-modal-close');
+    const pinSetupInput = document.getElementById('pin-setup-input');
+    const pinSetupConfirm = document.getElementById('pin-setup-confirm');
+    const pinDummyInput = document.getElementById('pin-dummy-input');
+    const pinDummyConfirm = document.getElementById('pin-dummy-confirm');
+    const savePinBtn = document.getElementById('save-pin-btn');
+    const removePinBtn = document.getElementById('remove-pin-btn');
+    const pinSetupMsg = document.getElementById('pin-setup-msg');
 
-    --muted: #9ca3af;
-    --glass: rgba(255,255,255,0.03);
+    const lockOverlay = document.getElementById('lock-overlay');
+    const pinBoxesContainer = document.getElementById('pin-boxes');
+    const pinHidden = document.getElementById('pin-hidden');
+    const unlockBtn = document.getElementById('unlock-btn');
+    const unlockCancelBtn = document.getElementById('unlock-cancel-btn');
+    const unlockMsg = document.getElementById('unlock-msg');
 
-    --radius-lg: 12px;
-    --shadow-xl: 0 10px 30px rgba(0,0,0,0.6);
-}
+    let inactivityTimer = null;
+    let inputElems = [];
+    let currentLength = 4;
+    let activityBound = false;
 
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Chakra Petch', monospace;
-    background: var(--dark-900);
-    color: #e5e7eb;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
-}
+    function bufferToHex(buffer) {
+        const bytes = new Uint8Array(buffer);
+        return Array.prototype.map.call(bytes, x => ('00' + x.toString(16)).slice(-2)).join('');
+    }
 
-.bg-dark-800 { background: var(--dark-800) !important; }
-.bg-dark-700 { background: var(--dark-700) !important; }
-.bg-dark-900 { background: var(--dark-900) !important; }
+    async function hashPin(pin) {
+        const enc = new TextEncoder();
+        const data = enc.encode(pin);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        return bufferToHex(hashBuffer);
+    }
 
-.auth-card, .bg-dark-800 {
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--dark-600);
-    box-shadow: var(--shadow-xl);
-}
+    function pinExists() { return !!localStorage.getItem(PIN_HASH_KEY); }
+    function getStoredPinLength() { return parseInt(localStorage.getItem(PIN_LENGTH_KEY) || '4', 10); }
 
-input[type="text"], input[type="password"], select, textarea {
-    background: var(--dark-700);
-    border: 1px solid var(--dark-500);
-    color: #fff;
-    border-radius: 10px;
-    transition: box-shadow .15s ease, transform .12s ease;
-}
+    async function savePin(pin) {
+        const h = await hashPin(pin);
+        localStorage.setItem(PIN_HASH_KEY, h);
+        localStorage.setItem(PIN_LENGTH_KEY, String(pin.length));
+    }
 
-input::placeholder, textarea::placeholder { color: #9ca3af; }
+    function dummyExists() { return !!localStorage.getItem(DUMMY_PIN_HASH_KEY); }
+    function getStoredDummyLength() { return parseInt(localStorage.getItem(DUMMY_PIN_LENGTH_KEY) || '0', 10); }
 
-input:focus, select:focus, button:focus, textarea:focus {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
-}
+    async function saveDummyPin(dummy) {
+        const h = await hashPin(dummy);
+        localStorage.setItem(DUMMY_PIN_HASH_KEY, h);
+        localStorage.setItem(DUMMY_PIN_LENGTH_KEY, String(dummy.length));
+    }
 
-button {
-    cursor: pointer;
-    border: none;
-    border-radius: 10px;
-    transition: transform .12s ease, background-color .12s ease, opacity .12s ease;
-}
-button:active { transform: translateY(1px); }
-button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    function removeDummyPin() {
+        localStorage.removeItem(DUMMY_PIN_HASH_KEY);
+        localStorage.removeItem(DUMMY_PIN_LENGTH_KEY);
+    }
 
-.fade-in { animation: fadeIn .45s ease-in-out both; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    function removePin() {
+        localStorage.removeItem(PIN_HASH_KEY);
+        localStorage.removeItem(PIN_LENGTH_KEY);
+        removeDummyPin();
+    }
 
-.message-appear { animation: messageAppear .28s ease-out both; }
-@keyframes messageAppear { from { opacity: 0; transform: translateX(-18px) scale(.975); } to { opacity: 1; transform: translateX(0) scale(1); } }
+    async function verifyPin(pin) {
+        const stored = localStorage.getItem(PIN_HASH_KEY);
+        if (!stored) return false;
+        const h = await hashPin(pin);
+        return stored === h;
+    }
 
-#messages-container { -webkit-overflow-scrolling: touch; }
-#messages-container::-webkit-scrollbar { width: 8px; height: 8px; }
-#messages-container::-webkit-scrollbar-track { background: var(--dark-800); }
-#messages-container::-webkit-scrollbar-thumb { background: var(--dark-500); border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); }
-#messages-container::-webkit-scrollbar-thumb:hover { background: #6a6a6a; }
+    async function verifyDummyPin(pin) {
+        const stored = localStorage.getItem(DUMMY_PIN_HASH_KEY);
+        if (!stored) return false;
+        const h = await hashPin(pin);
+        return stored === h;
+    }
 
-.hidden { display: none !important; }
+    function sessionUnlock() { sessionStorage.setItem(SESSION_UNLOCK_KEY, 'true'); }
+    function sessionLock() { sessionStorage.removeItem(SESSION_UNLOCK_KEY); }
+    function isSessionUnlocked() { return sessionStorage.getItem(SESSION_UNLOCK_KEY) === 'true'; }
+    function isUnlocked() { if (!pinExists()) return true; return isSessionUnlocked(); }
 
-.owner-shield {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 18px; height: 18px; border-radius: 4px; background: var(--dark-800); color: #fff; font-size: 12px; font-weight: 600; margin-left: 6px;
-}
+    function buildPinBoxes(len) {
+        pinBoxesContainer.innerHTML = '';
+        inputElems = [];
+        currentLength = len || getStoredPinLength() || 4;
 
-.dm-badge { font-size: 11px; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.03); margin-left: 6px; }
+        for (let i = 0; i < currentLength; i++) {
+            const box = document.createElement('div');
+            box.className = 'pin-box flex items-center justify-center text-2xl font-semibold rounded-lg shadow-inner bg-dark-700 border border-dark-500 w-16 h-16 md:w-20 md:h-20 select-none';
+            box.setAttribute('data-index', String(i));
+            box.setAttribute('tabindex', '0');
+            box.textContent = '';
+            pinBoxesContainer.appendChild(box);
+            inputElems.push(box);
+        }
 
-#auth-error { display: block; font-weight: 600; }
+        pinHidden.value = '';
 
-.message-item { padding: 8px 6px; border-radius: 10px; transition: background-color .12s ease; }
-.message-item:hover { background: rgba(255,255,255,0.015); }
+        pinHidden.setAttribute('maxlength', Math.max(currentLength, getStoredDummyLength() || 0));
+        pinHidden.focus();
 
-@media (max-width: 640px) {
-    .message-item { padding: 10px; border-radius: 8px; }
-}
+        pinHidden.oninput = (e) => {
+            const val = pinHidden.value.replace(/\D/g, '');
+            const clampLen = Math.max(currentLength, getStoredDummyLength() || 0);
+            pinHidden.value = val.slice(0, clampLen);
+            const displayVal = pinHidden.value.slice(0, currentLength);
+            for (let i = 0; i < currentLength; i++) {
+                inputElems[i].textContent = displayVal[i] || '';
+                inputElems[i].classList.toggle('filled', !!displayVal[i]);
+            }
 
-.text-red-400 { color: #fca5a5 !important; }
-.text-yellow-400 { color: #facc15 !important; }
-.text-gray-400 { color: #9ca3af !important; }
+            (async () => {
+                const typed = pinHidden.value.replace(/\D/g, '');
 
-.bg-blue-600 { background: var(--blue-600) !important; }
-.bg-blue-700 { background: var(--blue-700) !important; }
-.bg-green-600 { background: var(--green-600) !important; }
-.bg-green-700 { background: var(--green-700) !important; }
-.bg-red-600 { background: var(--red-600) !important; }
-.bg-red-700 { background: var(--red-700) !important; }
+                // If dummy exists and typed length matches dummy length -> try dummy
+                if (dummyExists() && typed.length === getStoredDummyLength()) {
+                    const okDummy = await verifyDummyPin(typed);
+                    if (okDummy) {
+                        // Trigger the helper that opens notes (if present)
+                        if (typeof window.openNotesMode === 'function') {
+                            window.openNotesMode();
+                        } else {
+                            document.dispatchEvent(new CustomEvent('dummyPinMatched', { detail: { pin: typed } }));
+                        }
 
-#pin-modal {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(180deg, rgba(10,10,10,0.5), rgba(10,10,10,0.35));
-    backdrop-filter: blur(6px);
-    padding: 20px;
-}
-#pin-modal > div {
-    background: #0a0a0a;
-    border: 1px solid rgba(255,255,255,0.03);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    border-radius: 18px;
-}
+                        pinHidden.value = '';
+                        inputElems.forEach(b => b.textContent = '');
+                        return;
+                    }
+                }
 
-#lock-overlay { display: none; }
-#lock-overlay:not(.hidden) { display: block; position: fixed; inset: 0; z-index: 9999; }
+                // If typed length reaches the main PIN length -> attempt unlock
+                if (typed.length >= currentLength) {
+                    attemptUnlock(typed.slice(0, currentLength));
+                }
+            })();
+        };
 
-#lock-overlay > .absolute { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.818); backdrop-filter: blur(50px); }
+        pinHidden.onpaste = (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, Math.max(currentLength, getStoredDummyLength() || 0));
+            pinHidden.value = text;
+            pinHidden.dispatchEvent(new Event('input'));
+        };
 
-#lock-overlay .relative > .w-full {
-    background: linear-gradient(180deg, var(--dark-800), var(--dark-700));
-    border: 1px solid rgba(255,255,255,0.03);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
-}
+        inputElems.forEach((box) => {
+            box.addEventListener('click', () => {
+                pinHidden.focus();
+                pinHidden.selectionStart = pinHidden.selectionEnd = pinHidden.value.length;
+            });
+        });
+    }
 
-#pin-boxes {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin: 12px 0;
-}
+    async function attemptUnlock(candidate) {
+        unlockMsg.textContent = '';
 
-.pin-box {
-    width: 4rem;
-    height: 4rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
-    color: #fff;
-    background: #181818;
-    border: 1px solid var(--dark-600);
-    border-radius: 12px;
-    transition: transform .12s ease, background-color .12s ease, box-shadow .12s ease;
-    user-select: none;
-    -webkit-user-select: none;
-}
+        // Try dummy first if present
+        if (dummyExists()) {
+            const isDummy = await verifyDummyPin(candidate);
+            if (isDummy) {
+                if (typeof window.openNotesMode === 'function') {
+                    window.openNotesMode();
+                } else {
+                    document.dispatchEvent(new CustomEvent('dummyPinMatched', { detail: { pin: candidate } }));
+                }
+                pinHidden.value = '';
+                inputElems.forEach(b => b.textContent = '');
+                return;
+            }
+        }
 
-@media (min-width: 768px) {
-    .pin-box { width: 5rem; height: 5rem; font-size: 2rem; border-radius: 14px; }
-}
+        if (!pinExists()) { unlockMsg.textContent = 'No PIN set.'; return; }
+        const ok = await verifyPin(candidate);
+        if (ok) {
+            sessionUnlock();
+            hideOverlay();
+            // Resume app behavior if those functions exist on window
+            if (typeof window.loadMessages === 'function') window.loadMessages();
+            if (typeof window.startPolling === 'function') window.startPolling();
+            resetInactivityTimer();
+        } else {
+            unlockMsg.textContent = 'Incorrect PIN';
+            pinBoxesContainer.classList.add('shake');
+            setTimeout(() => pinBoxesContainer.classList.remove('shake'), 420);
+            pinHidden.value = '';
+            inputElems.forEach(b => b.textContent = '');
+            setTimeout(() => pinHidden.focus(), 150);
+        }
+    }
 
-.pin-box.filled {
-    background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    box-shadow: 0 4px 18px rgba(0,0,0,0.5) inset;
-    transform: translateY(-2px);
-}
+    function showOverlay() {
+        buildPinBoxes(getStoredPinLength() || 4);
+        lockOverlay.classList.remove('hidden');
+        if (typeof window.stopPolling === 'function') window.stopPolling();
+        pinHidden.focus();
+    }
 
-@keyframes shakeX {
-    0% { transform: translateX(0); }
-    20% { transform: translateX(-8px); }
-    40% { transform: translateX(8px); }
-    60% { transform: translateX(-6px); }
-    80% { transform: translateX(6px); }
-    100% { transform: translateX(0); }
-}
-#pin-boxes.shake { animation: shakeX .42s ease; }
+    function hideOverlay() {
+        lockOverlay.classList.add('hidden');
+        pinHidden.value = '';
+        inputElems.forEach(b => b.textContent = '');
+    }
 
-#pin-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+    async function lockNow() {
+        if (!pinExists()) {
+            if (!confirm('No PIN set. Would you like to set one now?')) return;
+            openModal();
+            return;
+        }
+        sessionLock();
+        showOverlay();
+    }
 
-#unlock-msg { color: var(--muted); margin-top: 8px; min-height: 1em; }
+    function startActivityTracking() {
+        if (activityBound) return;
+        const reset = () => resetInactivityTimer();
+        ['mousemove','keydown','click','touchstart'].forEach(evt => window.addEventListener(evt, reset, { passive: true }));
+        activityBound = true;
+        resetInactivityTimer();
+    }
 
-@media (max-width: 420px) {
-    #pin-boxes { gap: 8px; }
-    .pin-box { width: 3.2rem; height: 3.2rem; font-size: 1.2rem; }
-}
+    function resetInactivityTimer() { clearInactivityTimer(); inactivityTimer = setTimeout(() => { sessionLock(); showOverlay(); }, INACTIVITY_MS); }
+    function clearInactivityTimer() { if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; } }
 
-.pin-box:focus { outline: 2px solid rgba(99,102,241,0.12); outline-offset: 3px; }
+    function openModal() {
+        if (!pinModal) return;
+        pinSetupInput.value = '';
+        pinSetupConfirm.value = '';
+        pinDummyInput.value = '';
+        pinDummyConfirm.value = '';
+        pinSetupMsg.textContent = '';
+        pinModal.classList.remove('hidden');
+        setTimeout(() => pinSetupInput.focus(), 80);
+    }
 
-#lock-overlay .relative { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    function closeModal() { if (!pinModal) return; pinModal.classList.add('hidden'); }
 
-#pin-setup-input, #pin-setup-confirm, #pin-dummy-input, #pin-dummy-confirm {
-    letter-spacing: 6px;
-}
+    if (pinBtn) pinBtn.addEventListener('click', openModal);
+    if (pinModalClose) pinModalClose.addEventListener('click', closeModal);
 
-#pin-modal button { border-radius: 10px; }
+    if (savePinBtn) savePinBtn.addEventListener('click', async () => {
+        pinSetupMsg.textContent = '';
+        const a = (pinSetupInput && pinSetupInput.value || '').trim();
+        const b = (pinSetupConfirm && pinSetupConfirm.value || '').trim();
+        const da = (pinDummyInput && pinDummyInput.value || '').trim();
+        const db = (pinDummyConfirm && pinDummyConfirm.value || '').trim();
 
-#pin-setup-msg, #unlock-msg { color: #9ca3af; }
+        if (!/^\d{4,8}$/.test(a)) { pinSetupMsg.textContent = 'PIN must be 4–8 digits.'; return; }
+        if (a !== b) { pinSetupMsg.textContent = 'PINs do not match.'; return; }
 
-.pin-box { cursor: text; }
+        if (da || db) {
+            if (!/^\d{4,8}$/.test(da)) { pinSetupMsg.textContent = 'Dummy PIN must be 4–8 digits.'; return; }
+            if (da !== db) { pinSetupMsg.textContent = 'Dummy PINs do not match.'; return; }
+            if (da === a) { pinSetupMsg.textContent = 'Dummy PIN should be different from the main PIN.'; return; }
+        }
 
-.notes-app .notes-sidebar { min-width: 220px; }
-.note-item { transition: background .12s ease; }
-.note-item:hover { background: rgba(255,255,255,0.02); }
-.notes-app input, .notes-app textarea, .notes-app button { font-family: inherit; color: #e6e6e6; }
-.notes-app .notes-sidebar .note-item.bg-dark-900 { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.02); }
+        try {
+            await savePin(a);
+            if (da) {
+                await saveDummyPin(da);
+                pinSetupMsg.textContent = 'PIN and dummy PIN saved.';
+            } else {
+                removeDummyPin();
+                pinSetupMsg.textContent = 'PIN saved. Dummy PIN removed (if any).';
+            }
+
+            sessionUnlock();
+            closeModal();
+        } catch (err) {
+            console.error('Error saving PINs:', err);
+            pinSetupMsg.textContent = 'Failed to save PIN.';
+        }
+    });
+
+    if (removePinBtn) removePinBtn.addEventListener('click', () => {
+        if (!pinExists() && !dummyExists()) { if (pinSetupMsg) pinSetupMsg.textContent = 'No PIN set.'; return; }
+        if (!confirm('Remove the PIN (and any dummy PIN)? This will disable locking.')) return;
+        removePin();
+        sessionLock();
+        if (pinSetupMsg) pinSetupMsg.textContent = 'PIN removed.';
+        closeModal();
+    });
+
+    if (lockNowBtn) lockNowBtn.addEventListener('click', lockNow);
+
+    if (unlockBtn) unlockBtn.addEventListener('click', () => {
+        const val = (document.getElementById('pin-hidden') || {}).value || '';
+        const normalized = val.replace(/\D/g, '');
+        if (!normalized || normalized.length < (getStoredPinLength() || 4)) {
+            if (dummyExists() && normalized.length >= getStoredDummyLength()) {
+                unlockMsg.textContent = 'Checking...';
+                return;
+            }
+            unlockMsg.textContent = 'Enter full PIN';
+            pinHidden.focus();
+            return;
+        }
+        attemptUnlock(normalized.slice(0, getStoredPinLength() || 4));
+    });
+
+    if (unlockCancelBtn) {
+        unlockCancelBtn.addEventListener('click', () => {
+            pinHidden.value = '';
+            inputElems.forEach(b => b.textContent = '');
+            if (unlockMsg) unlockMsg.textContent = '';
+        });
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (pinExists()) {
+                sessionLock();
+            }
+        } else {
+            if (!isUnlocked()) {
+                showOverlay();
+            } else {
+                if (typeof window.loadMessages === 'function') window.loadMessages();
+                if (typeof window.startPolling === 'function') window.startPolling();
+                resetInactivityTimer();
+            }
+        }
+    });
+
+    document.addEventListener('paste', (e) => {
+        if (!lockOverlay || lockOverlay.classList.contains('hidden')) return;
+        const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        if (!text) return;
+        pinHidden.value = text.slice(0, Math.max(getStoredPinLength() || 4, getStoredDummyLength() || 0));
+        pinHidden.dispatchEvent(new Event('input'));
+    });
+
+    if (pinExists() && !isSessionUnlocked()) {
+        showOverlay();
+    }
+
+    // Expose PinSystem to global scope for the rest of the app to use
+    window.PinSystem = {
+        isUnlocked,
+        showOverlayIfLocked: () => { if (!isUnlocked()) showOverlay(); },
+        init: () => { startActivityTracking(); },
+        verifyDummyPin,
+        dummyExists
+    };
+
+    // Auto-start activity tracking and inactivity timer
+    startActivityTracking();
+    resetInactivityTimer();
+
+})();
