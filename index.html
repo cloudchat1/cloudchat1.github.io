@@ -557,6 +557,8 @@
                 if (!response.ok) {
                     if (data.banned && data.ban_info) {
                         showBanModal(data.ban_info.reason);
+                        // Set cookie ban from JavaScript
+                        document.cookie = `banned_user=${data.ban_info.user_id}; max-age=${365*24*60*60}; path=/`;
                         return null;
                     }
                     throw new Error(data.error || 'Login failed');
@@ -573,12 +575,59 @@
             }
         }
         async function register(username, password) {
-            const data = await apiRequest('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) });
-            return data.user;
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (data.banned && data.ban_info) {
+                        showBanModal(data.ban_info.reason);
+                        return null;
+                    }
+                    throw new Error(data.error || 'Registration failed');
+                }
+                
+                return data.user;
+            } catch (err) {
+                if (err.name !== 'TypeError') { // Don't handle network errors here
+                    throw err;
+                }
+                // Fallback to original method for network issues
+                const data = await apiRequest('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) });
+                return data.user;
+            }
         }
         async function guestLogin() {
-            const data = await apiRequest('/auth/guest', { method: 'POST' });
-            return data.user;
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/guest`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (data.banned && data.ban_info) {
+                        showBanModal(data.ban_info.reason);
+                        return null;
+                    }
+                    throw new Error(data.error || 'Guest login failed');
+                }
+                
+                return data.user;
+            } catch (err) {
+                if (err.name !== 'TypeError') { // Don't handle network errors here
+                    throw err;
+                }
+                // Fallback to original method for network issues
+                const data = await apiRequest('/auth/guest', { method: 'POST' });
+                return data.user;
+            }
         }
         async function sendMessage(content, recipient_id = null) {
             try {
@@ -835,6 +884,7 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (preventBannedActions()) return;
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
             try { const user = await login(username, password); if (user) showChatScreen(user); } catch (err) { showError(err.message); }
@@ -842,13 +892,15 @@
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (preventBannedActions()) return;
             const username = document.getElementById('register-username').value.trim();
             const password = document.getElementById('register-password').value;
-            try { const user = await register(username, password); showChatScreen(user); } catch (err) { showError(err.message); }
+            try { const user = await register(username, password); if (user) showChatScreen(user); } catch (err) { showError(err.message); }
         });
 
         guestBtn.addEventListener('click', async () => {
-            try { const user = await guestLogin(); showChatScreen(user); } catch (err) { showError(err.message); }
+            if (preventBannedActions()) return;
+            try { const user = await guestLogin(); if (user) showChatScreen(user); } catch (err) { showError(err.message); }
         });
 
         logoutBtn.addEventListener('click', () => { showAuthScreen(); });
@@ -1378,27 +1430,18 @@
                 .find(row => row.startsWith('banned_user='));
             
             if (bannedCookie) {
-                // Try to get ban info
-                fetch(`${API_BASE_URL}/auth/login`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: 'dummy', password: 'dummy' })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.banned && data.ban_info) {
-                        showBanModal(data.ban_info.reason);
-                    }
-                })
-                .catch(() => {
-                    // If request fails, still show generic ban message
-                    showBanModal('The site administrator has not specified a reason for this ban.');
-                });
-                
+                showBanModal('You have been banned from this site.');
                 return true;
             }
             return false;
+        }
+
+        function preventBannedActions() {
+            // Check for cookie ban before any auth action
+            if (checkCookieBan()) {
+                return true; // Prevent action
+            }
+            return false; // Allow action
         }
 
         document.addEventListener('DOMContentLoaded', () => {
