@@ -107,6 +107,7 @@
                 <button id="clear-recipient-btn" class="text-xs text-gray-400 hover:text-white hidden">Clear DM</button>
 
                 <div class="flex items-center space-x-2">
+                    <button id="profile-pic-btn" title="Set Profile Picture" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700 hidden"><i class="fas fa-user-circle mr-1"></i>Avatar</button>
                     <button id="pin-btn" title="Set / Change PIN" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fa-solid fa-keyboard mr-2"></i>PIN</button>
                     <button id="lock-now-btn" title="Lock now" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fas fa-lock mr-1"></i>Lock</button>
                     <button id="admin-btn" title="Admin Controls" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700 hidden"><i class="fas fa-shield-alt mr-1"></i>Admin</button>
@@ -228,6 +229,36 @@
         </div>
     </div>
 
+    <!-- PROFILE PICTURE MODAL -->
+    <div id="profile-pic-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-2xl rounded-2xl p-6 shadow-2xl border border-dark-600 bg-dark-800" role="dialog" aria-modal="true">
+            <div class="flex items-start justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Set Profile Picture</h3>
+                <button id="profile-pic-modal-close" class="text-gray-400 hover:text-white" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-sm text-gray-400 mb-3">Search for a GIF from Tenor to use as your profile picture:</p>
+                <input type="text" id="profile-pic-search" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400" placeholder="Search for GIFs..." autocomplete="off">
+            </div>
+
+            <div id="profile-pic-grid" class="grid grid-cols-4 gap-3 max-h-96 overflow-y-auto mb-4">
+                <div class="text-center text-gray-400 py-8 col-span-full">
+                    <i class="fas fa-search text-2xl mb-2"></i>
+                    <p>Search for GIFs to use as your profile picture</p>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button id="remove-profile-pic-btn" class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white">Remove Picture</button>
+                <div id="profile-pic-msg" class="text-sm text-center"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ADMIN CONTROLS MODAL -->
     <div id="admin-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
@@ -345,6 +376,13 @@
         const unbanUsernameInput = document.getElementById('unban-username');
         const unbanUserBtn = document.getElementById('unban-user-btn');
         const adminMsg = document.getElementById('admin-msg');
+        const profilePicBtn = document.getElementById('profile-pic-btn');
+        const profilePicModal = document.getElementById('profile-pic-modal');
+        const profilePicModalClose = document.getElementById('profile-pic-modal-close');
+        const profilePicSearch = document.getElementById('profile-pic-search');
+        const profilePicGrid = document.getElementById('profile-pic-grid');
+        const removeProfilePicBtn = document.getElementById('remove-profile-pic-btn');
+        const profilePicMsg = document.getElementById('profile-pic-msg');
 
         let currentUserStatus = 'online';
         let lastActivity = Date.now();
@@ -426,6 +464,163 @@
         function hideAdminModal() {
             adminModal.classList.add('hidden');
             adminModal.classList.remove('flex');
+        }
+
+        function showProfilePicModal() {
+            profilePicModal.classList.remove('hidden');
+            profilePicModal.classList.add('flex');
+            profilePicSearch.value = '';
+            profilePicMsg.textContent = '';
+            profilePicGrid.innerHTML = `
+                <div class="text-center text-gray-400 py-8 col-span-full">
+                    <i class="fas fa-search text-2xl mb-2"></i>
+                    <p>Search for GIFs to use as your profile picture</p>
+                </div>
+            `;
+            profilePicSearch.focus();
+        }
+
+        function hideProfilePicModal() {
+            profilePicModal.classList.add('hidden');
+            profilePicModal.classList.remove('flex');
+        }
+
+        async function searchProfilePicGifs(query) {
+            if (!query.trim()) {
+                profilePicGrid.innerHTML = `
+                    <div class="text-center text-gray-400 py-8 col-span-full">
+                        <i class="fas fa-search text-2xl mb-2"></i>
+                        <p>Search for GIFs to use as your profile picture</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            profilePicGrid.innerHTML = `
+                <div class="text-center text-gray-400 py-8 col-span-full">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Searching...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/gifs/search?q=${encodeURIComponent(query)}&limit=20`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to search GIFs');
+                }
+                
+                if (data.gifs && data.gifs.length > 0) {
+                    profilePicGrid.innerHTML = '';
+                    data.gifs.forEach(gif => {
+                        const gifItem = document.createElement('div');
+                        gifItem.className = 'aspect-square rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 bg-dark-700';
+                        gifItem.innerHTML = `<img src="${gif.preview_url || gif.url}" alt="${gif.title}" loading="lazy" class="w-full h-full object-cover">`;
+                        gifItem.addEventListener('click', () => setProfilePicture(gif.url));
+                        profilePicGrid.appendChild(gifItem);
+                    });
+                } else {
+                    profilePicGrid.innerHTML = `
+                        <div class="text-center text-gray-400 py-8 col-span-full">
+                            <i class="fas fa-search text-2xl mb-2"></i>
+                            <p>No GIFs found. Try a different search term.</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Profile pic GIF search failed:', err);
+                profilePicGrid.innerHTML = `
+                    <div class="text-center text-red-400 py-8 col-span-full">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p>Failed to search GIFs. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function setProfilePicture(gifUrl) {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        profile_picture_url: gifUrl
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to set profile picture');
+                }
+                
+                profilePicMsg.textContent = 'Profile picture updated!';
+                profilePicMsg.className = 'text-sm text-center text-green-400';
+                
+                // Update user in usersList to reflect the change
+                const userIndex = usersList.findIndex(u => u.id === currentUser.id);
+                if (userIndex !== -1) {
+                    usersList[userIndex].profile_picture = gifUrl;
+                }
+                
+                // Refresh messages to show new profile picture
+                loadMessages();
+                
+                setTimeout(() => {
+                    hideProfilePicModal();
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to set profile picture:', err);
+                profilePicMsg.textContent = err.message || 'Failed to set profile picture';
+                profilePicMsg.className = 'text-sm text-center text-red-400';
+            }
+        }
+
+        async function removeProfilePicture() {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        profile_picture_url: null
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to remove profile picture');
+                }
+                
+                profilePicMsg.textContent = 'Profile picture removed!';
+                profilePicMsg.className = 'text-sm text-center text-green-400';
+                
+                // Update user in usersList to reflect the change
+                const userIndex = usersList.findIndex(u => u.id === currentUser.id);
+                if (userIndex !== -1) {
+                    usersList[userIndex].profile_picture = null;
+                }
+                
+                // Refresh messages to show default avatar
+                loadMessages();
+                
+                setTimeout(() => {
+                    hideProfilePicModal();
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to remove profile picture:', err);
+                profilePicMsg.textContent = err.message || 'Failed to remove profile picture';
+                profilePicMsg.className = 'text-sm text-center text-red-400';
+            }
         }
 
         function markAsSeen() {
@@ -698,10 +893,23 @@
             // Status indicator for non-guest users - use current status from usersList
             let currentStatus = 'offline';
             if (!isGuest && message.user_id) {
-                const currentUser = usersList.find(u => u.id === message.user_id);
-                currentStatus = currentUser ? currentUser.status : 'offline';
+                const currentUserData = usersList.find(u => u.id === message.user_id);
+                currentStatus = currentUserData ? currentUserData.status : 'offline';
             }
             const statusDot = !isGuest ? `<div class="status-dot status-${currentStatus}"></div>` : '';
+            
+            // Profile picture logic
+            let avatarHtml;
+            if (!isGuest && message.user_id) {
+                const userData = usersList.find(u => u.id === message.user_id);
+                if (userData && userData.profile_picture) {
+                    avatarHtml = `<img src="${escapeHtml(userData.profile_picture)}" alt="Profile" class="w-8 h-8 rounded-full object-cover">`;
+                } else {
+                    avatarHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">${escapeHtml(avatarChar)}</div>`;
+                }
+            } else {
+                avatarHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">${escapeHtml(avatarChar)}</div>`;
+            }
             
             let deleteButtonHtml = '';
             if (currentUser && !currentUser.is_guest && currentUser.username && currentUser.username.toLowerCase() === 'owner') {
@@ -728,7 +936,7 @@
             d.innerHTML = `
                 <div class="flex items-start space-x-3">
                     <div class="flex-shrink-0 status-indicator">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">${escapeHtml(avatarChar)}</div>
+                        ${avatarHtml}
                         ${statusDot}
                     </div>
                     <div class="flex-1 min-w-0">
@@ -821,6 +1029,7 @@
             if (user.is_guest) {
                 userDisplay.innerHTML = '[guest]';
                 statusSelect.classList.add('hidden');
+                profilePicBtn.classList.add('hidden');
             } else {
                 // Load saved status if available
                 const savedStatus = localStorage.getItem(`user_status_${user.username}`);
@@ -837,6 +1046,7 @@
                 }
                 statusSelect.classList.remove('hidden');
                 statusSelect.value = currentUserStatus;
+                profilePicBtn.classList.remove('hidden');
                 
                 // Start status tracking
                 startHeartbeat();
@@ -1422,6 +1632,21 @@
                 adminMsg.className = 'text-sm text-center text-red-400';
             }
         });
+
+        // Profile picture event listeners
+        if (profilePicBtn) profilePicBtn.addEventListener('click', showProfilePicModal);
+        if (profilePicModalClose) profilePicModalClose.addEventListener('click', hideProfilePicModal);
+        if (removeProfilePicBtn) removeProfilePicBtn.addEventListener('click', removeProfilePicture);
+
+        if (profilePicSearch) {
+            let searchTimeout = null;
+            profilePicSearch.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchProfilePicGifs(e.target.value);
+                }, 500);
+            });
+        }
 
         function checkCookieBan() {
             // Check if user has a banned cookie
