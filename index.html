@@ -1371,11 +1371,47 @@
             }
         });
 
+        function checkCookieBan() {
+            // Check if user has a banned cookie
+            const bannedCookie = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('banned_user='));
+            
+            if (bannedCookie) {
+                // Try to get ban info
+                fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'dummy', password: 'dummy' })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.banned && data.ban_info) {
+                        showBanModal(data.ban_info.reason);
+                    }
+                })
+                .catch(() => {
+                    // If request fails, still show generic ban message
+                    showBanModal('The site administrator has not specified a reason for this ban.');
+                });
+                
+                return true;
+            }
+            return false;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             updateCharCount();
             setFavicon(DEFAULT_FAVICON);
             document.title = 'Online Notepad';
+            
+            // Check for cookie ban on page load
+            if (checkCookieBan()) {
+                // Hide auth screen and show ban modal
+                authScreen.classList.add('hidden');
+            }
         });
     </script>
 
