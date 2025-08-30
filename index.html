@@ -515,8 +515,13 @@
             const ownerBadge = (message.username && message.username.toLowerCase() === 'owner') ? `<i class="fas fa-shield-alt text-white ml-1" title="owner"></i>` : '';
             const dmLabel = (message.recipient_id != null) ? `<span class="dm-badge">DM ${message.recipient_username ? '→ [' + escapeHtml(message.recipient_username) + ']' : ''}</span>` : '';
             
-            // Status indicator for non-guest users
-            const statusDot = !isGuest ? `<div class="status-dot status-${message.status || 'online'}"></div>` : '';
+            // Status indicator for non-guest users - use current status from usersList
+            let currentStatus = 'offline';
+            if (!isGuest && message.user_id) {
+                const currentUser = usersList.find(u => u.id === message.user_id);
+                currentStatus = currentUser ? currentUser.status : 'offline';
+            }
+            const statusDot = !isGuest ? `<div class="status-dot status-${currentStatus}"></div>` : '';
             
             let deleteButtonHtml = '';
             if (currentUser && !currentUser.is_guest && currentUser.username && currentUser.username.toLowerCase() === 'owner') {
