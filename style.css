@@ -325,11 +325,12 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 }
 
 .gif-message img {
-  width: 100%;
-  height: auto;
-  display: block;
-  transition: filter 0.3s ease;
-  filter: blur(8px);
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+    filter: blur(32px) brightness(0.3);
+    opacity: 1;
 }
 
 .gif-message:hover img {
@@ -342,7 +343,7 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(0,0,0,0.7);
-  color: white;
+  color: rgb(34, 34, 34);
   padding: 8px 12px;
   border-radius: 20px;
   font-size: 12px;
