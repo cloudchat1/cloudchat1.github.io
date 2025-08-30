@@ -5,6 +5,12 @@ let lastActivity = Date.now();
 let heartbeatInterval = null;
 let awayTimeout = null;
 
+// Make variables globally accessible
+window.currentUserStatus = currentUserStatus;
+window.lastActivity = lastActivity;
+window.heartbeatInterval = heartbeatInterval;
+window.awayTimeout = awayTimeout;
+
 function updateUserStatus(newStatus, broadcast = true) {
     if (window.currentUser && window.currentUser.is_guest) return; // Guests don't have status
     
@@ -136,6 +142,13 @@ function setupStatusEventListeners() {
         }
     });
 }
+
+// Make functions globally accessible
+window.updateUserStatus = updateUserStatus;
+window.resetAwayTimer = resetAwayTimer;
+window.sendHeartbeat = sendHeartbeat;
+window.startHeartbeat = startHeartbeat;
+window.stopHeartbeat = stopHeartbeat;
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
