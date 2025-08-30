@@ -109,6 +109,7 @@
                 <div class="flex items-center space-x-2">
                     <button id="pin-btn" title="Set / Change PIN" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fa-solid fa-keyboard mr-2"></i>PIN</button>
                     <button id="lock-now-btn" title="Lock now" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fas fa-lock mr-1"></i>Lock</button>
+                    <button id="admin-btn" title="Admin Controls" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700 hidden"><i class="fas fa-shield-alt mr-1"></i>Admin</button>
                 </div>
 
                 <button id="logout-btn" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">Logout</button>
@@ -206,6 +207,59 @@
         </div>
     </div>
 
+    <!-- BAN MODAL -->
+    <div id="ban-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md rounded-2xl p-6 shadow-2xl border border-dark-600 bg-dark-800" role="dialog" aria-modal="true">
+            <div class="flex items-center justify-center mb-4">
+                <div class="w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center text-white text-xl">
+                    <i class="fas fa-gavel"></i>
+                </div>
+            </div>
+            <h3 class="text-lg font-semibold text-center mb-2">Account Banned</h3>
+            <p class="text-sm text-gray-300 text-center mb-4">You have been banned from this site.</p>
+            <div class="bg-dark-700 rounded-lg p-4 mb-6">
+                <h4 class="text-sm font-medium text-white mb-2">Moderator Note:</h4>
+                <p id="ban-reason" class="text-sm text-gray-300"></p>
+            </div>
+            <div class="flex justify-center">
+                <button id="ban-ok" class="px-6 py-2 rounded bg-red-600 hover:bg-red-700 text-white">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN CONTROLS MODAL -->
+    <div id="admin-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md rounded-2xl p-6 shadow-2xl border border-dark-600 bg-dark-800" role="dialog" aria-modal="true">
+            <div class="flex items-start justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Admin Controls</h3>
+                <button id="admin-modal-close" class="text-gray-400 hover:text-white" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-medium text-white mb-2">Ban User</h4>
+                    <input id="ban-username" type="text" placeholder="Username" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400 mb-2">
+                    <textarea id="ban-reason-input" placeholder="Reason (optional)" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400 mb-2" rows="3"></textarea>
+                    <button id="ban-user-btn" class="w-full px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white">Ban User</button>
+                </div>
+
+                <hr class="border-dark-600">
+
+                <div>
+                    <h4 class="text-sm font-medium text-white mb-2">Unban User</h4>
+                    <input id="unban-username" type="text" placeholder="Username" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400 mb-2">
+                    <button id="unban-user-btn" class="w-full px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white">Unban User</button>
+                </div>
+
+                <div id="admin-msg" class="text-sm text-center"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- FULLSCREEN LOCK OVERLAY (new: full-screen, big boxes, blocking) -->
     <div id="lock-overlay" class="fixed inset-0 z-60 hidden">
         <!-- Full-screen dim + blur -->
@@ -279,6 +333,18 @@
         const moderationReason = document.getElementById('moderation-reason');
         const moderationOk = document.getElementById('moderation-ok');
         const statusSelect = document.getElementById('status-select');
+        const banModal = document.getElementById('ban-modal');
+        const banReason = document.getElementById('ban-reason');
+        const banOk = document.getElementById('ban-ok');
+        const adminBtn = document.getElementById('admin-btn');
+        const adminModal = document.getElementById('admin-modal');
+        const adminModalClose = document.getElementById('admin-modal-close');
+        const banUsernameInput = document.getElementById('ban-username');
+        const banReasonInput = document.getElementById('ban-reason-input');
+        const banUserBtn = document.getElementById('ban-user-btn');
+        const unbanUsernameInput = document.getElementById('unban-username');
+        const unbanUserBtn = document.getElementById('unban-user-btn');
+        const adminMsg = document.getElementById('admin-msg');
 
         let currentUserStatus = 'online';
         let lastActivity = Date.now();
@@ -335,6 +401,31 @@
         function hideModerationModal() {
             moderationModal.classList.add('hidden');
             moderationModal.classList.remove('flex');
+        }
+
+        function showBanModal(reason) {
+            banReason.textContent = reason || 'The site administrator has not specified a reason for this ban.';
+            banModal.classList.remove('hidden');
+            banModal.classList.add('flex');
+        }
+
+        function hideBanModal() {
+            banModal.classList.add('hidden');
+            banModal.classList.remove('flex');
+        }
+
+        function showAdminModal() {
+            adminModal.classList.remove('hidden');
+            adminModal.classList.add('flex');
+            banUsernameInput.value = '';
+            banReasonInput.value = '';
+            unbanUsernameInput.value = '';
+            adminMsg.textContent = '';
+        }
+
+        function hideAdminModal() {
+            adminModal.classList.add('hidden');
+            adminModal.classList.remove('flex');
         }
 
         function markAsSeen() {
@@ -454,8 +545,28 @@
             } catch (err) { console.error('Failed to load config:', err); }
         }
         async function login(username, password) {
-            const data = await apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
-            return data.user;
+            try {
+                const data = await apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+                return data.user;
+            } catch (err) {
+                if (err.message.includes('Account banned')) {
+                    // Parse the ban info from the error
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username, password })
+                        });
+                        const data = await response.json();
+                        if (data.banned && data.ban_info) {
+                            showBanModal(data.ban_info.reason);
+                            return null;
+                        }
+                    } catch {}
+                }
+                throw err;
+            }
         }
         async function register(username, password) {
             const data = await apiRequest('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) });
@@ -664,8 +775,13 @@
                     currentUserStatus = savedStatus;
                 }
                 
-                if (user.username && user.username.toLowerCase() === 'owner') userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield">★</span>`;
-                else userDisplay.textContent = `[${user.username}]`;
+                if (user.username && user.username.toLowerCase() === 'owner') {
+                    userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield">★</span>`;
+                    adminBtn.classList.remove('hidden');
+                } else {
+                    userDisplay.textContent = `[${user.username}]`;
+                    adminBtn.classList.add('hidden');
+                }
                 statusSelect.classList.remove('hidden');
                 statusSelect.value = currentUserStatus;
                 
@@ -682,11 +798,42 @@
         loginTab.addEventListener('click', () => { loginTab.classList.add('bg-blue-600','text-white'); loginTab.classList.remove('text-gray-300'); registerTab.classList.remove('bg-green-600','text-white'); registerTab.classList.add('text-gray-300'); loginForm.classList.remove('hidden'); registerForm.classList.add('hidden'); });
         registerTab.addEventListener('click', () => { registerTab.classList.add('bg-green-600','text-white'); registerTab.classList.remove('text-gray-300'); loginTab.classList.remove('bg-blue-600','text-white'); loginTab.classList.add('text-gray-300'); registerForm.classList.remove('hidden'); loginForm.classList.add('hidden'); });
 
+        async function banUser(username, reason) {
+            if (!currentUser || currentUser.username.toLowerCase() !== 'owner') {
+                throw new Error('Unauthorized');
+            }
+            
+            const data = await apiRequest('/admin/ban', {
+                method: 'POST',
+                body: JSON.stringify({
+                    admin_username: currentUser.username,
+                    target_username: username,
+                    reason: reason
+                })
+            });
+            return data;
+        }
+
+        async function unbanUser(username) {
+            if (!currentUser || currentUser.username.toLowerCase() !== 'owner') {
+                throw new Error('Unauthorized');
+            }
+            
+            const data = await apiRequest('/admin/unban', {
+                method: 'POST',
+                body: JSON.stringify({
+                    admin_username: currentUser.username,
+                    target_username: username
+                })
+            });
+            return data;
+        }
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
-            try { const user = await login(username, password); showChatScreen(user); } catch (err) { showError(err.message); }
+            try { const user = await login(username, password); if (user) showChatScreen(user); } catch (err) { showError(err.message); }
         });
 
         registerForm.addEventListener('submit', async (e) => {
@@ -1156,6 +1303,59 @@
         })();
 
         moderationOk.addEventListener('click', hideModerationModal);
+        
+        // Ban modal event listeners
+        banOk.addEventListener('click', () => {
+            hideBanModal();
+            // Reload page to clear any session data
+            window.location.reload();
+        });
+
+        // Admin controls event listeners
+        if (adminBtn) adminBtn.addEventListener('click', showAdminModal);
+        if (adminModalClose) adminModalClose.addEventListener('click', hideAdminModal);
+
+        if (banUserBtn) banUserBtn.addEventListener('click', async () => {
+            const username = banUsernameInput.value.trim();
+            const reason = banReasonInput.value.trim();
+            
+            if (!username) {
+                adminMsg.textContent = 'Please enter a username';
+                adminMsg.className = 'text-sm text-center text-red-400';
+                return;
+            }
+            
+            try {
+                await banUser(username, reason);
+                adminMsg.textContent = `User ${username} has been banned`;
+                adminMsg.className = 'text-sm text-center text-green-400';
+                banUsernameInput.value = '';
+                banReasonInput.value = '';
+            } catch (err) {
+                adminMsg.textContent = err.message || 'Failed to ban user';
+                adminMsg.className = 'text-sm text-center text-red-400';
+            }
+        });
+
+        if (unbanUserBtn) unbanUserBtn.addEventListener('click', async () => {
+            const username = unbanUsernameInput.value.trim();
+            
+            if (!username) {
+                adminMsg.textContent = 'Please enter a username';
+                adminMsg.className = 'text-sm text-center text-red-400';
+                return;
+            }
+            
+            try {
+                await unbanUser(username);
+                adminMsg.textContent = `User ${username} has been unbanned`;
+                adminMsg.className = 'text-sm text-center text-green-400';
+                unbanUsernameInput.value = '';
+            } catch (err) {
+                adminMsg.textContent = err.message || 'Failed to unban user';
+                adminMsg.className = 'text-sm text-center text-red-400';
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
