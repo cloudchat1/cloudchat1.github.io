@@ -1,11 +1,5 @@
-// Main module - handles core functionality, screen management, and event listeners
 
-// Global state variables
 let currentUser = null;
-let currentUserStatus = 'online';
-let lastActivity = Date.now();
-let heartbeatInterval = null;
-let awayTimeout = null;
 let currentRecipient = null;
 
 // DOM element references
@@ -37,91 +31,7 @@ const banModal = document.getElementById('ban-modal');
 const banReason = document.getElementById('ban-reason');
 const banOk = document.getElementById('ban-ok');
 
-// Status management functions
-function updateUserStatus(newStatus, broadcast = true) {
-    if (currentUser && currentUser.is_guest) return; // Guests don't have status
-    
-    const oldStatus = currentUserStatus;
-    currentUserStatus = newStatus;
-    if (statusSelect) statusSelect.value = newStatus;
-    
-    // Store status in localStorage
-    if (currentUser && !currentUser.is_guest) {
-        localStorage.setItem(`user_status_${currentUser.username}`, currentUserStatus);
-    }
-    
-    // Broadcast status change if needed
-    if (broadcast && oldStatus !== newStatus) {
-        sendHeartbeat();
-    }
-}
-
-function resetAwayTimer() {
-    lastActivity = Date.now();
-    
-    // If currently away due to inactivity, switch back to online
-    if (currentUserStatus === 'away' && currentUser && !currentUser.is_guest) {
-        updateUserStatus('online');
-    }
-    
-    // Clear existing away timeout
-    if (awayTimeout) {
-        clearTimeout(awayTimeout);
-    }
-    
-    // Set new away timeout
-    if (window.AWAY_TIMEOUT) {
-        awayTimeout = setTimeout(() => {
-            if (currentUserStatus === 'online' && !document.hidden) {
-                updateUserStatus('away');
-            }
-        }, window.AWAY_TIMEOUT);
-    }
-}
-
-async function sendHeartbeat() {
-    if (!currentUser || currentUser.is_guest) return;
-    
-    try {
-        await fetch(`${window.API_BASE_URL || 'https://chat.nighthawk.work/api'}/heartbeat`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: currentUser.id,
-                username: currentUser.username,
-                status: currentUserStatus,
-                timestamp: Date.now()
-            })
-        });
-    } catch (err) {
-        console.warn('Heartbeat failed:', err);
-    }
-}
-
-function startHeartbeat() {
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
-    if (!currentUser || currentUser.is_guest) return;
-    
-    // Send initial heartbeat
-    sendHeartbeat();
-    
-    // Set up regular heartbeat
-    if (window.HEARTBEAT_INTERVAL) {
-        heartbeatInterval = setInterval(sendHeartbeat, window.HEARTBEAT_INTERVAL);
-    }
-}
-
-function stopHeartbeat() {
-    if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-    }
-    if (awayTimeout) {
-        clearTimeout(awayTimeout);
-        awayTimeout = null;
-    }
-}
+// Status management functions - now handled by status.js module
 
 // Screen management functions
 function showAuthScreen() { 
@@ -130,7 +40,8 @@ function showAuthScreen() {
     stopHeartbeat();
     currentUser = null; 
     if (window.stopPolling) window.stopPolling(); 
-    if (window.markAsSeen) window.markAsSeen(); 
+    if (window.markAsSeen) window.markAsSeen();
+    if (window.stopHeartbeat) window.stopHeartbeat(); 
 }
 
 function showChatScreen(user) {
@@ -150,7 +61,7 @@ function showChatScreen(user) {
         }
         
         if (user.username && user.username.toLowerCase() === 'owner') {
-            if (userDisplay) userDisplay.innerHTML = `[${user.username}] <span class="owner-shield">★</span>`;
+            if (userDisplay) userDisplay.innerHTML = `[${user.username}] <span class="owner-shield">*</span>`;
             if (adminBtn) adminBtn.classList.remove('hidden');
         } else {
             if (userDisplay) userDisplay.textContent = `[${user.username}]`;
@@ -162,8 +73,8 @@ function showChatScreen(user) {
         }
         
         // Start status tracking
-        startHeartbeat();
-        resetAwayTimer();
+        if (window.startHeartbeat) window.startHeartbeat();
+        if (window.resetAwayTimer) window.resetAwayTimer();
     }
     
     if (window.loadUsers) window.loadUsers(); 
@@ -390,16 +301,16 @@ function setupEventListeners() {
             if (document.hidden) { 
                 if (window.stopPolling) window.stopPolling();
                 // Set to away when tab becomes hidden
-                if (!currentUser.is_guest && currentUserStatus === 'online') {
-                    updateUserStatus('away');
+                if (!currentUser.is_guest && window.currentUserStatus === 'online') {
+                    if (window.updateUserStatus) window.updateUserStatus('away');
                 }
             } else {
                 if (window.markAsSeen) window.markAsSeen();
                 // Reset to online when tab becomes visible again
-                if (!currentUser.is_guest && currentUserStatus === 'away') {
-                    updateUserStatus('online');
+                if (!currentUser.is_guest && window.currentUserStatus === 'away') {
+                    if (window.updateUserStatus) window.updateUserStatus('online');
                 }
-                resetAwayTimer();
+                if (window.resetAwayTimer) window.resetAwayTimer();
                 
                 if (window.PinSystem && window.PinSystem.isUnlocked()) { 
                     if (window.loadMessages) window.loadMessages(); 
@@ -414,9 +325,9 @@ function setupEventListeners() {
     window.addEventListener('focus', () => { 
         if (window.markAsSeen) window.markAsSeen(); 
         if (currentUser && !currentUser.is_guest) {
-            resetAwayTimer();
-            if (currentUserStatus === 'away') {
-                updateUserStatus('online');
+            if (window.resetAwayTimer) window.resetAwayTimer();
+            if (window.currentUserStatus === 'away') {
+                if (window.updateUserStatus) window.updateUserStatus('online');
             }
         }
         if (window.PinSystem && window.PinSystem.isUnlocked()) {
@@ -428,7 +339,7 @@ function setupEventListeners() {
     ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
         document.addEventListener(event, () => {
             if (currentUser && !currentUser.is_guest) {
-                resetAwayTimer();
+                if (window.resetAwayTimer) window.resetAwayTimer();
             }
         }, { passive: true });
     });
@@ -447,7 +358,6 @@ function setupEventListeners() {
 function init() {
     // Set global variables for other modules
     window.currentUser = currentUser;
-    window.currentUserStatus = currentUserStatus;
     window.currentRecipient = currentRecipient;
     window.API_BASE_URL = window.API_BASE_URL || 'https://chat.nighthawk.work/api';
     window.AWAY_TIMEOUT = window.AWAY_TIMEOUT || 5 * 60 * 1000;
@@ -484,14 +394,9 @@ function init() {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         currentUser,
-        currentUserStatus,
         currentRecipient,
         showAuthScreen,
         showChatScreen,
-        updateUserStatus,
-        resetAwayTimer,
-        startHeartbeat,
-        stopHeartbeat,
         showModerationModal,
         hideModerationModal,
         showBanModal,
