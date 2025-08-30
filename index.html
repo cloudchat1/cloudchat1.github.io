@@ -265,6 +265,11 @@
         const statusSelect = document.getElementById('status-select');
 
         let currentUserStatus = 'online';
+        let lastActivity = Date.now();
+        let heartbeatInterval = null;
+        let awayTimeout = null;
+        const AWAY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+        const HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
 
         function showError(message) {
             authError.textContent = message;
@@ -320,6 +325,85 @@
             unseenCount = 0; setFavicon(DEFAULT_FAVICON); document.title = 'Online Notepad';
         }
         function incrementUnread() { unseenCount += 1; setFavicon(NOTIF_FAVICON); document.title = `(${unseenCount}) Online Notepad`; }
+
+        function updateUserStatus(newStatus, broadcast = true) {
+            if (currentUser && currentUser.is_guest) return; // Guests don't have status
+            
+            const oldStatus = currentUserStatus;
+            currentUserStatus = newStatus;
+            statusSelect.value = newStatus;
+            
+            // Store status in localStorage
+            if (currentUser && !currentUser.is_guest) {
+                localStorage.setItem(`user_status_${currentUser.username}`, currentUserStatus);
+            }
+            
+            // Broadcast status change if needed
+            if (broadcast && oldStatus !== newStatus) {
+                sendHeartbeat();
+            }
+        }
+
+        function resetAwayTimer() {
+            lastActivity = Date.now();
+            
+            // If currently away due to inactivity, switch back to online
+            if (currentUserStatus === 'away' && currentUser && !currentUser.is_guest) {
+                updateUserStatus('online');
+            }
+            
+            // Clear existing away timeout
+            if (awayTimeout) {
+                clearTimeout(awayTimeout);
+            }
+            
+            // Set new away timeout
+            awayTimeout = setTimeout(() => {
+                if (currentUserStatus === 'online' && !document.hidden) {
+                    updateUserStatus('away');
+                }
+            }, AWAY_TIMEOUT);
+        }
+
+        async function sendHeartbeat() {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                await apiRequest('/heartbeat', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        username: currentUser.username,
+                        status: currentUserStatus,
+                        timestamp: Date.now()
+                    })
+                });
+            } catch (err) {
+                console.warn('Heartbeat failed:', err);
+            }
+        }
+
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            if (!currentUser || currentUser.is_guest) return;
+            
+            // Send initial heartbeat
+            sendHeartbeat();
+            
+            // Set up regular heartbeat
+            heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            if (awayTimeout) {
+                clearTimeout(awayTimeout);
+                awayTimeout = null;
+            }
+        }
 
         async function apiRequest(endpoint, options = {}) {
 
@@ -520,7 +604,14 @@
         }
         function stopPolling() { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } }
 
-        function showAuthScreen() { authScreen.classList.remove('hidden'); chatScreen.classList.add('hidden'); currentUser = null; stopPolling(); markAsSeen(); }
+        function showAuthScreen() { 
+            authScreen.classList.remove('hidden'); 
+            chatScreen.classList.add('hidden'); 
+            stopHeartbeat();
+            currentUser = null; 
+            stopPolling(); 
+            markAsSeen(); 
+        }
         function showChatScreen(user) {
             currentUser = user;
             authScreen.classList.add('hidden'); chatScreen.classList.remove('hidden');
@@ -528,10 +619,20 @@
                 userDisplay.innerHTML = '[guest]';
                 statusSelect.classList.add('hidden');
             } else {
+                // Load saved status if available
+                const savedStatus = localStorage.getItem(`user_status_${user.username}`);
+                if (savedStatus && ['online', 'away', 'busy', 'offline'].includes(savedStatus)) {
+                    currentUserStatus = savedStatus;
+                }
+                
                 if (user.username && user.username.toLowerCase() === 'owner') userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield">★</span>`;
                 else userDisplay.textContent = `[${user.username}]`;
                 statusSelect.classList.remove('hidden');
                 statusSelect.value = currentUserStatus;
+                
+                // Start status tracking
+                startHeartbeat();
+                resetAwayTimer();
             }
             loadUsers(); loadMessages(); startPolling(); messageInput.focus(); markAsSeen();
             if (window.PinSystem && !PinSystem.isUnlocked()) {
@@ -597,9 +698,32 @@
         function populateUserSelect() {
             const prev = userSelect.value || '';
             userSelect.innerHTML = '';
-            const allOption = document.createElement('option'); allOption.value = ''; allOption.textContent = 'All (global)'; userSelect.appendChild(allOption);
-            usersList.forEach(u => { const opt = document.createElement('option'); opt.value = u.id; opt.textContent = u.username; userSelect.appendChild(opt); });
-            if (prev) { const found = Array.from(userSelect.options).some(o => o.value === prev); if (found) userSelect.value = prev; }
+            const allOption = document.createElement('option'); 
+            allOption.value = ''; 
+            allOption.textContent = 'All (global)'; 
+            userSelect.appendChild(allOption);
+            
+            usersList.forEach(u => { 
+                const opt = document.createElement('option'); 
+                opt.value = u.id; 
+                
+                // Add status indicator to username
+                const statusEmoji = {
+                    'online': '🟢',
+                    'away': '🟡',
+                    'busy': '🔴',
+                    'offline': '⚫'
+                };
+                const emoji = statusEmoji[u.status] || '⚫';
+                opt.textContent = `${emoji} ${u.username}`;
+                
+                userSelect.appendChild(opt); 
+            });
+            
+            if (prev) { 
+                const found = Array.from(userSelect.options).some(o => o.value === prev); 
+                if (found) userSelect.value = prev; 
+            }
         }
 
         userSelect.addEventListener('change', () => {
@@ -611,25 +735,56 @@
         clearRecipientBtn.addEventListener('click', () => { currentRecipient = null; userSelect.value = ''; clearRecipientBtn.classList.add('hidden'); loadMessages(); });
 
         statusSelect.addEventListener('change', () => {
-            currentUserStatus = statusSelect.value;
-            // Store status in localStorage to persist across sessions
-            if (currentUser && !currentUser.is_guest) {
-                localStorage.setItem(`user_status_${currentUser.username}`, currentUserStatus);
-            }
+            updateUserStatus(statusSelect.value);
         });
 
         document.addEventListener('visibilitychange', () => {
             if (currentUser) {
-                if (document.hidden) { stopPolling(); }
+                if (document.hidden) { 
+                    stopPolling();
+                    // Set to away when tab becomes hidden
+                    if (!currentUser.is_guest && currentUserStatus === 'online') {
+                        updateUserStatus('away');
+                    }
+                }
                 else {
                     markAsSeen();
-                    if (window.PinSystem && PinSystem.isUnlocked()) { loadMessages(); startPolling(); }
-                    else if (window.PinSystem && !PinSystem.isUnlocked()) { PinSystem.showOverlayIfLocked(); }
+                    // Reset to online when tab becomes visible again
+                    if (!currentUser.is_guest && currentUserStatus === 'away') {
+                        updateUserStatus('online');
+                    }
+                    resetAwayTimer();
+                    
+                    if (window.PinSystem && PinSystem.isUnlocked()) { 
+                        loadMessages(); 
+                        startPolling(); 
+                    }
+                    else if (window.PinSystem && !PinSystem.isUnlocked()) { 
+                        PinSystem.showOverlayIfLocked(); 
+                    }
                 }
             }
         });
 
-        window.addEventListener('focus', () => { markAsSeen(); if (window.PinSystem && PinSystem.isUnlocked()) loadMessages(); });
+        window.addEventListener('focus', () => { 
+            markAsSeen(); 
+            if (currentUser && !currentUser.is_guest) {
+                resetAwayTimer();
+                if (currentUserStatus === 'away') {
+                    updateUserStatus('online');
+                }
+            }
+            if (window.PinSystem && PinSystem.isUnlocked()) loadMessages(); 
+        });
+
+        // Track user activity to reset away timer
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+            document.addEventListener(event, () => {
+                if (currentUser && !currentUser.is_guest) {
+                    resetAwayTimer();
+                }
+            }, { passive: true });
+        });
 
         (function notesAppModule() {
             const NOTES_KEY = 'notes_app_v1';
@@ -826,15 +981,6 @@
             updateCharCount();
             setFavicon(DEFAULT_FAVICON);
             document.title = 'Online Notepad';
-            
-            // Load saved status if available
-            if (currentUser && !currentUser.is_guest) {
-                const savedStatus = localStorage.getItem(`user_status_${currentUser.username}`);
-                if (savedStatus) {
-                    currentUserStatus = savedStatus;
-                    statusSelect.value = savedStatus;
-                }
-            }
         });
     </script>
 
