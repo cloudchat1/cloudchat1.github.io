@@ -898,9 +898,12 @@
             }
             const statusDot = !isGuest ? `<div class="status-dot status-${currentStatus}"></div>` : '';
             
-            // Profile picture logic
+            // Profile picture logic - use profile_picture from message data first
             let avatarHtml;
-            if (!isGuest && message.user_id) {
+            if (!isGuest && message.profile_picture) {
+                avatarHtml = `<img src="${escapeHtml(message.profile_picture)}" alt="Profile" class="w-8 h-8 rounded-full object-cover">`;
+            } else if (!isGuest && message.user_id) {
+                // Fallback to usersList lookup for older messages without profile_picture field
                 const userData = usersList.find(u => u.id === message.user_id);
                 if (userData && userData.profile_picture) {
                     avatarHtml = `<img src="${escapeHtml(userData.profile_picture)}" alt="Profile" class="w-8 h-8 rounded-full object-cover">`;
