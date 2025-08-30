@@ -1,15 +1,9 @@
 // Chat module - handles messaging, users, and chat state
 
-let currentUser = null;
 let lastMessageId = 0;
 let pollInterval = null;
 let usersList = [];
-let currentRecipient = null;
 let unseenCount = 0;
-let currentUserStatus = 'online';
-let lastActivity = Date.now();
-let heartbeatInterval = null;
-let awayTimeout = null;
 
 async function sendMessage(content, recipient_id = null) {
     try {
@@ -19,10 +13,10 @@ async function sendMessage(content, recipient_id = null) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 content, 
-                user_id: currentUser.id, 
-                is_guest: currentUser.is_guest || false, 
+                user_id: window.currentUser.id, 
+                is_guest: window.currentUser.is_guest || false, 
                 recipient_id,
-                status: currentUserStatus 
+                status: window.currentUserStatus 
             })
         });
         
@@ -39,12 +33,12 @@ async function sendMessage(content, recipient_id = null) {
         
         return data.message || { 
             id: Date.now(), 
-            display_name: currentUser ? currentUser.username : 'you', 
-            username: currentUser ? currentUser.username : 'you', 
-            is_guest: currentUser ? currentUser.is_guest : true, 
+            display_name: window.currentUser ? window.currentUser.username : 'you', 
+            username: window.currentUser ? window.currentUser.username : 'you', 
+            is_guest: window.currentUser ? window.currentUser.is_guest : true, 
             content, 
             timestamp: Date.now(),
-            status: currentUserStatus 
+            status: window.currentUserStatus 
         };
     } catch (err) {
         // Re-throw the error to be handled by the caller
@@ -92,8 +86,8 @@ async function deleteMessageRequest(messageId) {
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                requesting_user_id: currentUser && currentUser.id, 
-                requesting_username: currentUser && currentUser.username 
+                requesting_user_id: window.currentUser && window.currentUser.id, 
+                requesting_username: window.currentUser && window.currentUser.username 
             })
         });
         const data = await response.json();
@@ -140,7 +134,7 @@ function createMessageElement(message) {
     }
     
     let deleteButtonHtml = '';
-    if (currentUser && !currentUser.is_guest && currentUser.username && currentUser.username.toLowerCase() === 'owner') {
+    if (window.currentUser && !window.currentUser.is_guest && window.currentUser.username && window.currentUser.username.toLowerCase() === 'owner') {
         deleteButtonHtml = `<button data-delete-id="${message.id}" class="ml-3 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>`;
     }
     
@@ -204,13 +198,13 @@ function removeMessageElement(messageId) {
 }
 
 function messageMatchesCurrentView(message) {
-    if (!currentRecipient) {
+    if (!window.currentRecipient) {
         if (message.recipient_id == null) return true;
-        if (!currentUser) return false;
-        return (message.user_id === currentUser.id) || (message.recipient_id === currentUser.id);
+        if (!window.currentUser) return false;
+        return (message.user_id === window.currentUser.id) || (message.recipient_id === window.currentUser.id);
     } else {
-        if (!currentUser) return false;
-        const a = currentUser.id, b = currentRecipient.id;
+        if (!window.currentUser) return false;
+        const a = window.currentUser.id, b = window.currentRecipient.id;
         return (message.user_id === a && message.recipient_id === b) || (message.user_id === b && message.recipient_id === a);
     }
 }
@@ -257,13 +251,13 @@ function addMessage(message, scroll = true) {
     
     if (document.querySelector(`[data-message-id="${message.id}"]`)) return;
     
-    if (!messageMatchesCurrentView(message)) {
-        if (document.hidden && currentUser) {
-            const relevant = (!message.recipient_id) || (message.recipient_id === currentUser.id) || (message.user_id === currentUser.id);
-            if (relevant) window.incrementUnread();
+            if (!messageMatchesCurrentView(message)) {
+            if (document.hidden && window.currentUser) {
+                const relevant = (!message.recipient_id) || (message.recipient_id === window.currentUser.id) || (message.user_id === window.currentUser.id);
+                if (relevant) window.incrementUnread();
+            }
+            return;
         }
-        return;
-    }
     
     emptyState.classList.add('hidden');
     const messageElement = createMessageElement(message);
@@ -339,16 +333,30 @@ function populateUserSelect() {
     }
 }
 
+// Make functions globally accessible
+window.sendMessage = sendMessage;
+window.fetchMessages = fetchMessages;
+window.fetchRecentMessages = fetchRecentMessages;
+window.loadUsers = loadUsers;
+window.deleteMessageRequest = deleteMessageRequest;
+window.createMessageElement = createMessageElement;
+window.removeMessageElement = removeMessageElement;
+window.messageMatchesCurrentView = messageMatchesCurrentView;
+window.clearMessages = clearMessages;
+window.renderMessages = renderMessages;
+window.addMessage = addMessage;
+window.loadMessages = loadMessages;
+window.startPolling = startPolling;
+window.stopPolling = stopPolling;
+window.populateUserSelect = populateUserSelect;
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        currentUser,
         lastMessageId,
         pollInterval,
         usersList,
-        currentRecipient,
         unseenCount,
-        currentUserStatus,
         sendMessage,
         fetchMessages,
         fetchRecentMessages,
