@@ -324,17 +324,1367 @@
         </div>
     </div>
 
-    <!-- JavaScript modules -->
-    <script src="config.js"></script>
-    <script src="ui.js"></script>
-    <script src="auth.js"></script>
-    <script src="chat.js"></script>
-    <script src="status.js"></script>
-    <script src="gif.js"></script>
-    <script src="notes.js"></script>
-    <script src="admin.js"></script>
-    <script src="profile.js"></script>
-    <script src="main.js"></script>
+    <script>
+
+        const API_BASE_URL = 'https://chat.nighthawk.work/api';
+        const DEFAULT_FAVICON = 'https://onlinenotepad.org/favicon.ico';
+        const NOTIF_FAVICON = 'https://cdn-icons-png.flaticon.com/512/1827/1827504.png';
+
+        let currentUser = null;
+        let lastMessageId = 0;
+        let pollInterval = null;
+        let config = { guest_login_enabled: true };
+        let usersList = [];
+        let currentRecipient = null;
+        let unseenCount = 0;
+
+        const authScreen = document.getElementById('auth-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const guestSection = document.getElementById('guest-section');
+        const guestBtn = document.getElementById('guest-btn');
+        const authError = document.getElementById('auth-error');
+        const userDisplay = document.getElementById('user-display');
+        const logoutBtn = document.getElementById('logout-btn');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const sendText = document.getElementById('send-text');
+        const sendLoading = document.getElementById('send-loading');
+        const charCount = document.getElementById('char-count');
+        const emptyState = document.getElementById('empty-state');
+        const userSelect = document.getElementById('user-select');
+        const clearRecipientBtn = document.getElementById('clear-recipient-btn');
+        const faviconEl = document.getElementById('favicon');
+        const moderationModal = document.getElementById('moderation-modal');
+        const moderationReason = document.getElementById('moderation-reason');
+        const moderationOk = document.getElementById('moderation-ok');
+        const statusSelect = document.getElementById('status-select');
+        const banModal = document.getElementById('ban-modal');
+        const banReason = document.getElementById('ban-reason');
+        const banOk = document.getElementById('ban-ok');
+        const adminBtn = document.getElementById('admin-btn');
+        const adminModal = document.getElementById('admin-modal');
+        const adminModalClose = document.getElementById('admin-modal-close');
+        const banUsernameInput = document.getElementById('ban-username');
+        const banReasonInput = document.getElementById('ban-reason-input');
+        const banUserBtn = document.getElementById('ban-user-btn');
+        const unbanUsernameInput = document.getElementById('unban-username');
+        const unbanUserBtn = document.getElementById('unban-user-btn');
+        const adminMsg = document.getElementById('admin-msg');
+        const profilePicBtn = document.getElementById('profile-pic-btn');
+        const profilePicModal = document.getElementById('profile-pic-modal');
+        const profilePicModalClose = document.getElementById('profile-pic-modal-close');
+        const profilePicSearch = document.getElementById('profile-pic-search');
+        const profilePicGrid = document.getElementById('profile-pic-grid');
+        const removeProfilePicBtn = document.getElementById('remove-profile-pic-btn');
+        const profilePicMsg = document.getElementById('profile-pic-msg');
+
+        let currentUserStatus = 'online';
+        let lastActivity = Date.now();
+        let heartbeatInterval = null;
+        let awayTimeout = null;
+        const AWAY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+        const HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
+
+        function showError(message) {
+            authError.textContent = message;
+            authError.classList.remove('hidden');
+            setTimeout(() => authError.classList.add('hidden'), 5000);
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div'); d.textContent = text; return d.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const d = new Date(timestamp);
+            return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function updateCharCount() {
+            const len = messageInput.value.length;
+            charCount.textContent = `${len}/500`;
+            if (len > 450) charCount.className = 'text-xs text-red-400';
+            else if (len > 400) charCount.className = 'text-xs text-yellow-400';
+            else charCount.className = 'text-xs text-gray-400';
+        }
+
+        function setLoading(loading) {
+            sendButton.disabled = loading;
+            messageInput.disabled = loading;
+            if (loading) { sendText.classList.add('hidden'); sendLoading.classList.remove('hidden'); }
+            else { sendText.classList.remove('hidden'); sendLoading.classList.add('hidden'); }
+        }
+
+        function scrollToBottom() { window.scrollTo(0, document.body.scrollHeight); }
+
+        function setFavicon(url) {
+            if (faviconEl) faviconEl.href = url;
+            else {
+                const link = document.createElement('link'); link.id = 'favicon'; link.rel = 'icon'; link.href = url; document.head.appendChild(link);
+            }
+        }
+
+        function showModerationModal(reason) {
+            moderationReason.textContent = reason || 'Your message violates our community guidelines and cannot be sent.';
+            moderationModal.classList.remove('hidden');
+            moderationModal.classList.add('flex');
+        }
+
+        function hideModerationModal() {
+            moderationModal.classList.add('hidden');
+            moderationModal.classList.remove('flex');
+        }
+
+        function showBanModal(reason) {
+            banReason.textContent = reason || 'The site administrator has not specified a reason for this ban.';
+            banModal.classList.remove('hidden');
+            banModal.classList.add('flex');
+        }
+
+        function hideBanModal() {
+            banModal.classList.add('hidden');
+            banModal.classList.remove('flex');
+        }
+
+        function showAdminModal() {
+            adminModal.classList.remove('hidden');
+            adminModal.classList.add('flex');
+            banUsernameInput.value = '';
+            banReasonInput.value = '';
+            unbanUsernameInput.value = '';
+            adminMsg.textContent = '';
+        }
+
+        function hideAdminModal() {
+            adminModal.classList.add('hidden');
+            adminModal.classList.remove('flex');
+        }
+
+        function showProfilePicModal() {
+            profilePicModal.classList.remove('hidden');
+            profilePicModal.classList.add('flex');
+            profilePicSearch.value = '';
+            profilePicMsg.textContent = '';
+            profilePicGrid.innerHTML = `
+                <div class="text-center text-gray-400 py-8 col-span-full">
+                    <i class="fas fa-search text-2xl mb-2"></i>
+                    <p>Search for GIFs to use as your profile picture</p>
+                </div>
+            `;
+            profilePicSearch.focus();
+        }
+
+        function hideProfilePicModal() {
+            profilePicModal.classList.add('hidden');
+            profilePicModal.classList.remove('flex');
+        }
+
+        async function searchProfilePicGifs(query) {
+            if (!query.trim()) {
+                profilePicGrid.innerHTML = `
+                    <div class="text-center text-gray-400 py-8 col-span-full">
+                        <i class="fas fa-search text-2xl mb-2"></i>
+                        <p>Search for GIFs to use as your profile picture</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            profilePicGrid.innerHTML = `
+                <div class="text-center text-gray-400 py-8 col-span-full">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Searching...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/gifs/search?q=${encodeURIComponent(query)}&limit=20`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to search GIFs');
+                }
+                
+                if (data.gifs && data.gifs.length > 0) {
+                    profilePicGrid.innerHTML = '';
+                    data.gifs.forEach(gif => {
+                        const gifItem = document.createElement('div');
+                        gifItem.className = 'aspect-square rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 bg-dark-700';
+                        gifItem.innerHTML = `<img src="${gif.preview_url || gif.url}" alt="${gif.title}" loading="lazy" class="w-full h-full object-cover">`;
+                        gifItem.addEventListener('click', () => setProfilePicture(gif.url));
+                        profilePicGrid.appendChild(gifItem);
+                    });
+                } else {
+                    profilePicGrid.innerHTML = `
+                        <div class="text-center text-gray-400 py-8 col-span-full">
+                            <i class="fas fa-search text-2xl mb-2"></i>
+                            <p>No GIFs found. Try a different search term.</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Profile pic GIF search failed:', err);
+                profilePicGrid.innerHTML = `
+                    <div class="text-center text-red-400 py-8 col-span-full">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p>Failed to search GIFs. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function setProfilePicture(gifUrl) {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        profile_picture_url: gifUrl
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to set profile picture');
+                }
+                
+                profilePicMsg.textContent = 'Profile picture updated!';
+                profilePicMsg.className = 'text-sm text-center text-green-400';
+                
+                // Update user in usersList to reflect the change
+                const userIndex = usersList.findIndex(u => u.id === currentUser.id);
+                if (userIndex !== -1) {
+                    usersList[userIndex].profile_picture = gifUrl;
+                }
+                
+                // Refresh messages to show new profile picture
+                loadMessages();
+                
+                setTimeout(() => {
+                    hideProfilePicModal();
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to set profile picture:', err);
+                profilePicMsg.textContent = err.message || 'Failed to set profile picture';
+                profilePicMsg.className = 'text-sm text-center text-red-400';
+            }
+        }
+
+        async function removeProfilePicture() {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        profile_picture_url: null
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to remove profile picture');
+                }
+                
+                profilePicMsg.textContent = 'Profile picture removed!';
+                profilePicMsg.className = 'text-sm text-center text-green-400';
+                
+                // Update user in usersList to reflect the change
+                const userIndex = usersList.findIndex(u => u.id === currentUser.id);
+                if (userIndex !== -1) {
+                    usersList[userIndex].profile_picture = null;
+                }
+                
+                // Refresh messages to show default avatar
+                loadMessages();
+                
+                setTimeout(() => {
+                    hideProfilePicModal();
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to remove profile picture:', err);
+                profilePicMsg.textContent = err.message || 'Failed to remove profile picture';
+                profilePicMsg.className = 'text-sm text-center text-red-400';
+            }
+        }
+
+        function markAsSeen() {
+            unseenCount = 0; setFavicon(DEFAULT_FAVICON); document.title = 'Online Notepad';
+        }
+        function incrementUnread() { unseenCount += 1; setFavicon(NOTIF_FAVICON); document.title = `(${unseenCount}) Online Notepad`; }
+
+        function updateUserStatus(newStatus, broadcast = true) {
+            if (currentUser && currentUser.is_guest) return; // Guests don't have status
+            
+            const oldStatus = currentUserStatus;
+            currentUserStatus = newStatus;
+            statusSelect.value = newStatus;
+            
+            // Store status in localStorage
+            if (currentUser && !currentUser.is_guest) {
+                localStorage.setItem(`user_status_${currentUser.username}`, currentUserStatus);
+            }
+            
+            // Broadcast status change if needed
+            if (broadcast && oldStatus !== newStatus) {
+                sendHeartbeat();
+            }
+        }
+
+        function resetAwayTimer() {
+            lastActivity = Date.now();
+            
+            // If currently away due to inactivity, switch back to online
+            if (currentUserStatus === 'away' && currentUser && !currentUser.is_guest) {
+                updateUserStatus('online');
+            }
+            
+            // Clear existing away timeout
+            if (awayTimeout) {
+                clearTimeout(awayTimeout);
+            }
+            
+            // Set new away timeout
+            awayTimeout = setTimeout(() => {
+                if (currentUserStatus === 'online' && !document.hidden) {
+                    updateUserStatus('away');
+                }
+            }, AWAY_TIMEOUT);
+        }
+
+        async function sendHeartbeat() {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                await apiRequest('/heartbeat', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        username: currentUser.username,
+                        status: currentUserStatus,
+                        timestamp: Date.now()
+                    })
+                });
+            } catch (err) {
+                console.warn('Heartbeat failed:', err);
+            }
+        }
+
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            if (!currentUser || currentUser.is_guest) return;
+            
+            // Send initial heartbeat
+            sendHeartbeat();
+            
+            // Set up regular heartbeat
+            heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            if (awayTimeout) {
+                clearTimeout(awayTimeout);
+                awayTimeout = null;
+            }
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+
+            try {
+
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json', ...options.headers },
+                    ...options
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Request failed');
+                return data;
+            } catch (err) {
+                console.warn('API request failed (stubbed):', err);
+
+                if (endpoint.startsWith('/config')) return { guest_login_enabled: true };
+                if (endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register') || endpoint.startsWith('/auth/guest')) {
+                    return { user: { id: Date.now(), username: 'guest-' + Math.floor(Math.random()*9999), is_guest: true } };
+                }
+                if (endpoint.startsWith('/messages')) return { messages: [] };
+                if (endpoint.startsWith('/users')) return { users: [] };
+                return {};
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const data = await apiRequest('/config');
+                config = data;
+                if (!config.guest_login_enabled) guestSection.classList.add('hidden');
+            } catch (err) { console.error('Failed to load config:', err); }
+        }
+        async function login(username, password) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (data.banned && data.ban_info) {
+                        showBanModal(data.ban_info.reason);
+                        // Set cookie ban from JavaScript
+                        document.cookie = `banned_user=${data.ban_info.user_id}; max-age=${365*24*60*60}; path=/`;
+                        return null;
+                    }
+                    throw new Error(data.error || 'Login failed');
+                }
+                
+                return data.user;
+            } catch (err) {
+                if (err.name !== 'TypeError') { // Don't handle network errors here
+                    throw err;
+                }
+                // Fallback to original method for network issues
+                const data = await apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+                return data.user;
+            }
+        }
+        async function register(username, password) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (data.banned && data.ban_info) {
+                        showBanModal(data.ban_info.reason);
+                        return null;
+                    }
+                    throw new Error(data.error || 'Registration failed');
+                }
+                
+                return data.user;
+            } catch (err) {
+                if (err.name !== 'TypeError') { // Don't handle network errors here
+                    throw err;
+                }
+                // Fallback to original method for network issues
+                const data = await apiRequest('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) });
+                return data.user;
+            }
+        }
+        async function guestLogin() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/guest`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (data.banned && data.ban_info) {
+                        showBanModal(data.ban_info.reason);
+                        return null;
+                    }
+                    throw new Error(data.error || 'Guest login failed');
+                }
+                
+                return data.user;
+            } catch (err) {
+                if (err.name !== 'TypeError') { // Don't handle network errors here
+                    throw err;
+                }
+                // Fallback to original method for network issues
+                const data = await apiRequest('/auth/guest', { method: 'POST' });
+                return data.user;
+            }
+        }
+        async function sendMessage(content, recipient_id = null) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/messages`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        content, 
+                        user_id: currentUser.id, 
+                        is_guest: currentUser.is_guest || false, 
+                        recipient_id,
+                        status: currentUserStatus 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (data.blocked) {
+                        // Throw error with the full response data for moderation handling
+                        const error = new Error(JSON.stringify(data));
+                        throw error;
+                    }
+                    throw new Error(data.error || 'Request failed');
+                }
+                
+                return data.message || { 
+                    id: Date.now(), 
+                    display_name: currentUser ? currentUser.username : 'you', 
+                    username: currentUser ? currentUser.username : 'you', 
+                    is_guest: currentUser ? currentUser.is_guest : true, 
+                    content, 
+                    timestamp: Date.now(),
+                    status: currentUserStatus 
+                };
+            } catch (err) {
+                // Re-throw the error to be handled by the caller
+                throw err;
+            }
+        }
+        async function fetchMessages() {
+            const data = await apiRequest(`/messages?last_id=${lastMessageId}`);
+            return data.messages || [];
+        }
+        async function fetchRecentMessages() { const data = await apiRequest('/messages/recent'); return data.messages || []; }
+        async function loadUsers() {
+            try { const data = await apiRequest('/users'); usersList = data.users || []; populateUserSelect(); } catch (err) { console.error('Failed to load users:', err); }
+        }
+        async function deleteMessageRequest(messageId) {
+            try {
+                const body = { requesting_user_id: currentUser && currentUser.id, requesting_username: currentUser && currentUser.username };
+                const res = await apiRequest(`/messages/${messageId}`, { method: 'DELETE', body: JSON.stringify(body) });
+                return res;
+            } catch (err) { console.error('Delete message failed:', err); throw err; }
+        }
+
+        function createMessageElement(message) {
+            const d = document.createElement('div');
+            d.className = 'message-item fade-in';
+            d.dataset.messageId = message.id;
+            const isGuest = message.is_guest;
+            const avatarChar = isGuest ? 'G' : (message.username && message.username[0] ? message.username[0].toUpperCase() : 'U');
+            const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
+            const ownerBadge = (message.username && message.username.toLowerCase() === 'owner') ? `<i class="fas fa-shield-alt text-white ml-1" title="owner"></i>` : '';
+            const dmLabel = (message.recipient_id != null) ? `<span class="dm-badge">DM ${message.recipient_username ? '→ [' + escapeHtml(message.recipient_username) + ']' : ''}</span>` : '';
+            
+            // Status indicator for non-guest users - use current status from usersList
+            let currentStatus = 'offline';
+            if (!isGuest && message.user_id) {
+                const currentUserData = usersList.find(u => u.id === message.user_id);
+                currentStatus = currentUserData ? currentUserData.status : 'offline';
+            }
+            const statusDot = !isGuest ? `<div class="status-dot status-${currentStatus}"></div>` : '';
+            
+            // Profile picture logic - use profile_picture from message data first
+            let avatarHtml;
+            if (!isGuest && message.profile_picture) {
+                avatarHtml = `<img src="${escapeHtml(message.profile_picture)}" alt="Profile" class="w-8 h-8 rounded-full object-cover">`;
+            } else if (!isGuest && message.user_id) {
+                // Fallback to usersList lookup for older messages without profile_picture field
+                const userData = usersList.find(u => u.id === message.user_id);
+                if (userData && userData.profile_picture) {
+                    avatarHtml = `<img src="${escapeHtml(userData.profile_picture)}" alt="Profile" class="w-8 h-8 rounded-full object-cover">`;
+                } else {
+                    avatarHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">${escapeHtml(avatarChar)}</div>`;
+                }
+            } else {
+                avatarHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">${escapeHtml(avatarChar)}</div>`;
+            }
+            
+            let deleteButtonHtml = '';
+            if (currentUser && !currentUser.is_guest && currentUser.username && currentUser.username.toLowerCase() === 'owner') {
+                deleteButtonHtml = `<button data-delete-id="${message.id}" class="ml-3 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>`;
+            }
+            
+            // Check if message content is a GIF URL
+            const isGifMessage = message.content && (message.content.startsWith('http') && (message.content.includes('.gif') || message.content.includes('tenor.com') || message.content.includes('giphy.com')));
+            
+            let messageContent;
+            if (isGifMessage) {
+                messageContent = `
+                    <div class="gif-message">
+                        <img src="${escapeHtml(message.content)}" alt="GIF" loading="lazy">
+                        <div class="gif-overlay">
+                            <i class="fas fa-play"></i> Hover to play
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageContent = `<div class="text-gray-300 break-words">${escapeHtml(message.content)}</div>`;
+            }
+            
+            d.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 status-indicator">
+                        ${avatarHtml}
+                        ${statusDot}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="font-medium text-white">${escapeHtml(message.display_name)}</span>
+                            ${ownerBadge}
+                            <span class="ml-2">${dmLabel}</span>
+                            ${deleteButtonHtml}
+                            <span class="text-xs text-gray-400">${formatTime(message.timestamp)}</span>
+                        </div>
+                        ${messageContent}
+                    </div>
+                </div>
+            `;
+            const btn = d.querySelector('button[data-delete-id]');
+            if (btn) btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.getAttribute('data-delete-id'), 10);
+                if (!confirm('Delete this message?')) return;
+                try { await deleteMessageRequest(id); removeMessageElement(id); } catch (err) { showError('Failed to delete message'); }
+            });
+            return d;
+        }
+
+        function removeMessageElement(messageId) { const el = document.querySelector(`[data-message-id="${messageId}"]`); if (el && el.parentNode) el.parentNode.removeChild(el); }
+
+        function messageMatchesCurrentView(message) {
+            if (!currentRecipient) {
+                if (message.recipient_id == null) return true;
+                if (!currentUser) return false;
+                return (message.user_id === currentUser.id) || (message.recipient_id === currentUser.id);
+            } else {
+                if (!currentUser) return false;
+                const a = currentUser.id, b = currentRecipient.id;
+                return (message.user_id === a && message.recipient_id === b) || (message.user_id === b && message.recipient_id === a);
+            }
+        }
+
+        function clearMessages() { messagesContainer.innerHTML = ''; }
+        function renderMessages(allMessages) {
+            clearMessages();
+            if (!allMessages || allMessages.length === 0) { emptyState.classList.remove('hidden'); return; }
+            let anyShown = false;
+            allMessages.forEach(message => { if (messageMatchesCurrentView(message)) { addMessage(message, false); anyShown = true; } });
+            if (!anyShown) emptyState.classList.remove('hidden'); else emptyState.classList.add('hidden');
+            scrollToBottom();
+        }
+        function addMessage(message, scroll = true) {
+            if (document.querySelector(`[data-message-id="${message.id}"]`)) return;
+            if (!messageMatchesCurrentView(message)) {
+                if (document.hidden && currentUser) {
+                    const relevant = (!message.recipient_id) || (message.recipient_id === currentUser.id) || (message.user_id === currentUser.id);
+                    if (relevant) incrementUnread();
+                }
+                return;
+            }
+            emptyState.classList.add('hidden');
+            const messageElement = createMessageElement(message);
+            messagesContainer.appendChild(messageElement);
+            setTimeout(() => messageElement.classList.add('message-appear'), 10);
+            lastMessageId = Math.max(lastMessageId, message.id);
+            if (scroll) scrollToBottom();
+        }
+
+        function loadMessages() {
+            fetchRecentMessages()
+                .then(messages => { if (!messages || messages.length === 0) emptyState.classList.remove('hidden'); else renderMessages(messages); })
+                .catch(err => console.error('Failed to load messages:', err));
+        }
+
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(() => {
+                fetchMessages().then(messages => { messages.forEach(m => addMessage(m)); loadUsers(); }).catch(err => console.error('Polling error:', err));
+            }, 1000);
+        }
+        function stopPolling() { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } }
+
+        function showAuthScreen() { 
+            authScreen.classList.remove('hidden'); 
+            chatScreen.classList.add('hidden'); 
+            stopHeartbeat();
+            currentUser = null; 
+            stopPolling(); 
+            markAsSeen(); 
+        }
+        function showChatScreen(user) {
+            currentUser = user;
+            authScreen.classList.add('hidden'); chatScreen.classList.remove('hidden');
+            if (user.is_guest) {
+                userDisplay.innerHTML = '[guest]';
+                statusSelect.classList.add('hidden');
+                profilePicBtn.classList.add('hidden');
+            } else {
+                // Load saved status if available
+                const savedStatus = localStorage.getItem(`user_status_${user.username}`);
+                if (savedStatus && ['online', 'away', 'busy', 'offline'].includes(savedStatus)) {
+                    currentUserStatus = savedStatus;
+                }
+                
+                if (user.username && user.username.toLowerCase() === 'owner') {
+                    userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield">★</span>`;
+                    adminBtn.classList.remove('hidden');
+                } else {
+                    userDisplay.textContent = `[${user.username}]`;
+                    adminBtn.classList.add('hidden');
+                }
+                statusSelect.classList.remove('hidden');
+                statusSelect.value = currentUserStatus;
+                profilePicBtn.classList.remove('hidden');
+                
+                // Start status tracking
+                startHeartbeat();
+                resetAwayTimer();
+            }
+            loadUsers(); loadMessages(); startPolling(); messageInput.focus(); markAsSeen();
+            if (window.PinSystem && !PinSystem.isUnlocked()) {
+                PinSystem.showOverlayIfLocked();
+            }
+        }
+
+        loginTab.addEventListener('click', () => { loginTab.classList.add('bg-blue-600','text-white'); loginTab.classList.remove('text-gray-300'); registerTab.classList.remove('bg-green-600','text-white'); registerTab.classList.add('text-gray-300'); loginForm.classList.remove('hidden'); registerForm.classList.add('hidden'); });
+        registerTab.addEventListener('click', () => { registerTab.classList.add('bg-green-600','text-white'); registerTab.classList.remove('text-gray-300'); loginTab.classList.remove('bg-blue-600','text-white'); loginTab.classList.add('text-gray-300'); registerForm.classList.remove('hidden'); loginForm.classList.add('hidden'); });
+
+        async function banUser(username, reason) {
+            if (!currentUser || currentUser.username.toLowerCase() !== 'owner') {
+                throw new Error('Unauthorized');
+            }
+            
+            const data = await apiRequest('/admin/ban', {
+                method: 'POST',
+                body: JSON.stringify({
+                    admin_username: currentUser.username,
+                    target_username: username,
+                    reason: reason
+                })
+            });
+            return data;
+        }
+
+        async function unbanUser(username) {
+            if (!currentUser || currentUser.username.toLowerCase() !== 'owner') {
+                throw new Error('Unauthorized');
+            }
+            
+            const data = await apiRequest('/admin/unban', {
+                method: 'POST',
+                body: JSON.stringify({
+                    admin_username: currentUser.username,
+                    target_username: username
+                })
+            });
+            return data;
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (preventBannedActions()) return;
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            try { const user = await login(username, password); if (user) showChatScreen(user); } catch (err) { showError(err.message); }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (preventBannedActions()) return;
+            const username = document.getElementById('register-username').value.trim();
+            const password = document.getElementById('register-password').value;
+            try { const user = await register(username, password); if (user) showChatScreen(user); } catch (err) { showError(err.message); }
+        });
+
+        guestBtn.addEventListener('click', async () => {
+            if (preventBannedActions()) return;
+            try { const user = await guestLogin(); if (user) showChatScreen(user); } catch (err) { showError(err.message); }
+        });
+
+        logoutBtn.addEventListener('click', () => { showAuthScreen(); });
+
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = messageInput.value.trim(); if (!content) return;
+            setLoading(true);
+            try { 
+                const recipient_id = currentRecipient ? currentRecipient.id : null; 
+                const message = await sendMessage(content, recipient_id); 
+                messageInput.value = ''; 
+                updateCharCount(); 
+                addMessage(message); 
+            } catch (err) { 
+                console.error('Failed to send message:', err); 
+                if (err.message && err.message.includes('Account banned')) {
+                    // Handle ban during message sending
+                    try {
+                        const errorData = JSON.parse(err.message);
+                        if (errorData.ban_info) {
+                            showBanModal(errorData.ban_info.reason);
+                            return;
+                        }
+                    } catch {}
+                    showBanModal('Your account has been banned.');
+                } else if (err.message && err.message.includes('blocked by content filter')) {
+                    // Parse the error response to get the reason
+                    try {
+                        const errorData = JSON.parse(err.message);
+                        showModerationModal(errorData.reason);
+                    } catch {
+                        showModerationModal('Your message was blocked by our content filter.');
+                    }
+                } else {
+                    showError('Failed to send message'); 
+                }
+            } finally { 
+                setLoading(false); 
+                messageInput.focus(); 
+            }
+        });
+
+        messageInput.addEventListener('input', updateCharCount);
+        messageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); messageForm.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})); } });
+
+        function populateUserSelect() {
+            const prev = userSelect.value || '';
+            userSelect.innerHTML = '';
+            const allOption = document.createElement('option'); 
+            allOption.value = ''; 
+            allOption.textContent = 'All (global)'; 
+            userSelect.appendChild(allOption);
+            
+            usersList.forEach(u => { 
+                const opt = document.createElement('option'); 
+                opt.value = u.id; 
+                
+                // Add status indicator to username
+                const statusEmoji = {
+                    'online': '🟢',
+                    'away': '🟡',
+                    'busy': '🔴',
+                    'offline': '⚫'
+                };
+                const emoji = statusEmoji[u.status] || '⚫';
+                opt.textContent = `${emoji} ${u.username}`;
+                
+                userSelect.appendChild(opt); 
+            });
+            
+            if (prev) { 
+                const found = Array.from(userSelect.options).some(o => o.value === prev); 
+                if (found) userSelect.value = prev; 
+            }
+        }
+
+        userSelect.addEventListener('change', () => {
+            const val = userSelect.value;
+            if (!val) { currentRecipient = null; clearRecipientBtn.classList.add('hidden'); } else { const u = usersList.find(x => String(x.id) === String(val)); if (u) { currentRecipient = { id: u.id, username: u.username }; clearRecipientBtn.classList.remove('hidden'); } else { currentRecipient = null; clearRecipientBtn.classList.add('hidden'); } }
+            loadMessages();
+        });
+
+        clearRecipientBtn.addEventListener('click', () => { currentRecipient = null; userSelect.value = ''; clearRecipientBtn.classList.add('hidden'); loadMessages(); });
+
+        statusSelect.addEventListener('change', () => {
+            updateUserStatus(statusSelect.value);
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (currentUser) {
+                if (document.hidden) { 
+                    stopPolling();
+                    // Set to away when tab becomes hidden
+                    if (!currentUser.is_guest && currentUserStatus === 'online') {
+                        updateUserStatus('away');
+                    }
+                }
+                else {
+                    markAsSeen();
+                    // Reset to online when tab becomes visible again
+                    if (!currentUser.is_guest && currentUserStatus === 'away') {
+                        updateUserStatus('online');
+                    }
+                    resetAwayTimer();
+                    
+                    if (window.PinSystem && PinSystem.isUnlocked()) { 
+                        loadMessages(); 
+                        startPolling(); 
+                    }
+                    else if (window.PinSystem && !PinSystem.isUnlocked()) { 
+                        PinSystem.showOverlayIfLocked(); 
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('focus', () => { 
+            markAsSeen(); 
+            if (currentUser && !currentUser.is_guest) {
+                resetAwayTimer();
+                if (currentUserStatus === 'away') {
+                    updateUserStatus('online');
+                }
+            }
+            if (window.PinSystem && PinSystem.isUnlocked()) loadMessages(); 
+        });
+
+        // Track user activity to reset away timer
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+            document.addEventListener(event, () => {
+                if (currentUser && !currentUser.is_guest) {
+                    resetAwayTimer();
+                }
+            }, { passive: true });
+        });
+
+        // GIF Browser functionality
+        (function gifBrowserModule() {
+            const gifBtn = document.getElementById('gif-btn');
+            const gifBrowser = document.getElementById('gif-browser');
+            const gifSearch = document.getElementById('gif-search');
+            const gifGrid = document.getElementById('gif-grid');
+            
+            let searchTimeout = null;
+            let isGifBrowserOpen = false;
+            
+            async function searchGifs(query) {
+                if (!query.trim()) {
+                    gifGrid.innerHTML = `
+                        <div class="text-center text-gray-400 py-8 col-span-full">
+                            <i class="fas fa-search text-2xl mb-2"></i>
+                            <p>Search for GIFs to send</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                gifGrid.innerHTML = `
+                    <div class="text-center text-gray-400 py-8 col-span-full">
+                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Searching...</p>
+                    </div>
+                `;
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/gifs/search?q=${encodeURIComponent(query)}&limit=20`);
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to search GIFs');
+                    }
+                    
+                    if (data.gifs && data.gifs.length > 0) {
+                        gifGrid.innerHTML = '';
+                        data.gifs.forEach(gif => {
+                            const gifItem = document.createElement('div');
+                            gifItem.className = 'gif-item';
+                            gifItem.innerHTML = `<img src="${gif.preview_url || gif.url}" alt="${gif.title}" loading="lazy">`;
+                            gifItem.addEventListener('click', () => sendGif(gif.url));
+                            gifGrid.appendChild(gifItem);
+                        });
+                    } else {
+                        gifGrid.innerHTML = `
+                            <div class="text-center text-gray-400 py-8 col-span-full">
+                                <i class="fas fa-search text-2xl mb-2"></i>
+                                <p>No GIFs found. Try a different search term.</p>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    console.error('GIF search failed:', err);
+                    gifGrid.innerHTML = `
+                        <div class="text-center text-red-400 py-8 col-span-full">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <p>Failed to search GIFs. Please try again.</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            function toggleGifBrowser() {
+                isGifBrowserOpen = !isGifBrowserOpen;
+                if (isGifBrowserOpen) {
+                    gifBrowser.classList.remove('hidden');
+                    gifBtn.classList.add('active');
+                    gifSearch.focus();
+                } else {
+                    gifBrowser.classList.add('hidden');
+                    gifBtn.classList.remove('active');
+                    gifSearch.value = '';
+                    gifGrid.innerHTML = `
+                        <div class="text-center text-gray-400 py-8 col-span-full">
+                            <i class="fas fa-search text-2xl mb-2"></i>
+                            <p>Search for GIFs to send</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            async function sendGif(gifUrl) {
+                if (!currentUser) return;
+                
+                setLoading(true);
+                try {
+                    const recipient_id = currentRecipient ? currentRecipient.id : null;
+                    const message = await sendMessage(gifUrl, recipient_id);
+                    addMessage(message);
+                    toggleGifBrowser(); // Close the browser after sending
+                } catch (err) {
+                    console.error('Failed to send GIF:', err);
+                    if (err.message && err.message.includes('blocked by content filter')) {
+                        try {
+                            const errorData = JSON.parse(err.message);
+                            showModerationModal(errorData.reason);
+                        } catch {
+                            showModerationModal('Your GIF was blocked by our content filter.');
+                        }
+                    } else {
+                        showError('Failed to send GIF');
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            }
+            
+            // Event listeners
+            gifBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleGifBrowser();
+            });
+            
+            gifSearch.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchGifs(e.target.value);
+                }, 500);
+            });
+            
+            // Close GIF browser when clicking outside
+            document.addEventListener('click', (e) => {
+                if (isGifBrowserOpen && !gifBrowser.contains(e.target) && !gifBtn.contains(e.target)) {
+                    toggleGifBrowser();
+                }
+            });
+            
+            // Prevent form submission when in GIF browser
+            gifBrowser.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+            
+            gifSearch.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    toggleGifBrowser();
+                }
+                e.stopPropagation();
+            });
+        })();
+
+        (function notesAppModule() {
+            const NOTES_KEY = 'notes_app_v1';
+            const lockPanel = document.getElementById('lock-panel');
+
+            function loadNotesFromStorage() {
+                try {
+                    const raw = localStorage.getItem(NOTES_KEY);
+                    if (!raw) return [];
+                    return JSON.parse(raw);
+                } catch (e) {
+                    console.error('Failed to parse notes:', e);
+                    return [];
+                }
+            }
+            function saveNotesToStorage(notes) {
+                localStorage.setItem(NOTES_KEY, JSON.stringify(notes || []));
+            }
+
+            function createNoteObject() {
+                return {
+                    id: Date.now() + Math.floor(Math.random() * 999),
+                    title: 'Untitled',
+                    content: '',
+                    updatedAt: new Date().toISOString()
+                };
+            }
+
+            window.openNotesMode = function openNotesMode() {
+                const notes = loadNotesFromStorage();
+
+                if (!notes || notes.length === 0) {
+                    const sample = createNoteObject();
+                    sample.title = 'Weekly Assignments';
+                    sample.content = 'DUE NEXT WEDNESDAY: ';
+                    notes.push(sample);
+                    saveNotesToStorage(notes);
+                }
+
+                lockPanel.innerHTML = `
+                    <div class="notes-app w-full">
+                        <div class="flex gap-4">
+                            <div class="notes-sidebar w-1/3 border-r pr-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-semibold">Notes</h3>
+                                    <div class="flex gap-2">
+                                        <button id="notes-new" class="px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700">New</button>
+                                        <button id="notes-close" class="px-3 py-1 text-sm rounded bg-gray-600 hover:bg-gray-700">Close</button>
+                                    </div>
+                                </div>
+                                <input id="notes-search" placeholder="Search..." class="w-full mb-3 p-2 rounded bg-dark-700 border border-dark-500 text-sm" />
+                                <div id="notes-list" style="max-height:420px;overflow:auto;"></div>
+                            </div>
+                            <div class="notes-editor flex-1 pl-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <input id="note-title" class="text-xl p-2 rounded bg-dark-800 border border-dark-500 w-3/4" placeholder="Title" />
+                                    <div class="flex gap-2">
+                                        <button id="note-delete" class="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700">Delete</button>
+                                        <button id="note-save" class="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700">Save</button>
+                                    </div>
+                                </div>
+                                <textarea id="note-content" class="w-full h-72 p-3 rounded bg-dark-700 border border-dark-500" placeholder="Write your note..."></textarea>
+                                <div id="note-meta" class="text-xs text-gray-400 mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const notesListEl = document.getElementById('notes-list');
+                const titleEl = document.getElementById('note-title');
+                const contentEl = document.getElementById('note-content');
+                const saveBtn = document.getElementById('note-save');
+                const deleteBtn = document.getElementById('note-delete');
+                const newBtn = document.getElementById('notes-new');
+                const closeBtn = document.getElementById('notes-close');
+                const searchEl = document.getElementById('notes-search');
+                const metaEl = document.getElementById('note-meta');
+
+                let notesState = loadNotesFromStorage();
+                let currentNoteId = notesState[0] && notesState[0].id;
+
+                function renderList(filter = '') {
+                    const f = filter.trim().toLowerCase();
+                    notesListEl.innerHTML = '';
+                    const ordered = notesState.slice().sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+                    ordered.forEach(n => {
+                        if (f && !(n.title + ' ' + n.content).toLowerCase().includes(f)) return;
+                        const item = document.createElement('div');
+                        item.className = 'note-item p-2 mb-2 rounded hover:bg-dark-800 cursor-pointer border border-dark-600';
+                        item.dataset.id = n.id;
+                        item.innerHTML = `<div class="flex justify-between items-start"><strong>${escapeHtml(n.title || 'Untitled')}</strong><span class="text-xs text-gray-400">${new Date(n.updatedAt).toLocaleString()}</span></div>
+                                          <div class="text-sm text-gray-400 truncate mt-1">${escapeHtml(n.content || '')}</div>`;
+                        item.addEventListener('click', () => {
+                            loadNoteIntoEditor(n.id);
+                        });
+                        notesListEl.appendChild(item);
+                    });
+                    highlightSelected();
+                }
+
+                function loadNoteIntoEditor(id) {
+                    const note = notesState.find(x => x.id === Number(id));
+                    if (!note) return;
+                    currentNoteId = note.id;
+                    titleEl.value = note.title;
+                    contentEl.value = note.content;
+                    metaEl.textContent = `Last edited: ${new Date(note.updatedAt).toLocaleString()}`;
+                    highlightSelected();
+                }
+
+                function highlightSelected() {
+                    const items = Array.from(document.querySelectorAll('.note-item'));
+                    items.forEach(el => el.classList.toggle('bg-dark-900', Number(el.dataset.id) === Number(currentNoteId)));
+                }
+
+                function persistState() {
+                    saveNotesToStorage(notesState);
+                    renderList(searchEl.value || '');
+                }
+
+                function saveCurrentNote() {
+                    if (!currentNoteId) return;
+                    const idx = notesState.findIndex(x => x.id === Number(currentNoteId));
+                    if (idx === -1) return;
+                    notesState[idx].title = titleEl.value || 'Untitled';
+                    notesState[idx].content = contentEl.value || '';
+                    notesState[idx].updatedAt = new Date().toISOString();
+                    persistState();
+                    metaEl.textContent = `Saved: ${new Date(notesState[idx].updatedAt).toLocaleString()}`;
+                }
+
+                function deleteCurrentNote() {
+                    if (!currentNoteId) return;
+                    if (!confirm('Delete this note?')) return;
+                    notesState = notesState.filter(x => x.id !== Number(currentNoteId));
+                    if (notesState.length === 0) {
+                        const n = createNoteObject();
+                        notesState.push(n);
+                    }
+                    currentNoteId = notesState[0].id;
+                    persistState();
+                    loadNoteIntoEditor(currentNoteId);
+                }
+
+                let autosaveTimer = null;
+                function scheduleAutosave() {
+                    clearTimeout(autosaveTimer);
+                    autosaveTimer = setTimeout(() => {
+                        if (currentNoteId) {
+                            saveCurrentNote();
+                        }
+                    }, 700);
+                }
+
+                newBtn.addEventListener('click', () => {
+                    const n = createNoteObject();
+                    notesState.unshift(n);
+                    currentNoteId = n.id;
+                    persistState();
+                    loadNoteIntoEditor(currentNoteId);
+                    titleEl.focus();
+                });
+
+                saveBtn.addEventListener('click', () => {
+                    saveCurrentNote();
+                });
+
+                deleteBtn.addEventListener('click', () => {
+                    deleteCurrentNote();
+                });
+
+                closeBtn.addEventListener('click', () => {
+
+                    window.location.reload();
+                });
+
+                titleEl.addEventListener('input', scheduleAutosave);
+                contentEl.addEventListener('input', scheduleAutosave);
+                searchEl.addEventListener('input', () => renderList(searchEl.value || ''));
+
+                renderList();
+                loadNoteIntoEditor(currentNoteId);
+            };
+
+            document.addEventListener('dummyPinMatched', (e) => {
+                window.openNotesMode && window.openNotesMode();
+            });
+        })();
+
+        moderationOk.addEventListener('click', hideModerationModal);
+        
+        // Ban modal event listeners
+        banOk.addEventListener('click', () => {
+            hideBanModal();
+            // Reload page to clear any session data
+            window.location.reload();
+        });
+
+        // Admin controls event listeners
+        if (adminBtn) adminBtn.addEventListener('click', showAdminModal);
+        if (adminModalClose) adminModalClose.addEventListener('click', hideAdminModal);
+
+        if (banUserBtn) banUserBtn.addEventListener('click', async () => {
+            const username = banUsernameInput.value.trim();
+            const reason = banReasonInput.value.trim();
+            
+            if (!username) {
+                adminMsg.textContent = 'Please enter a username';
+                adminMsg.className = 'text-sm text-center text-red-400';
+                return;
+            }
+            
+            try {
+                await banUser(username, reason);
+                adminMsg.textContent = `User ${username} has been banned`;
+                adminMsg.className = 'text-sm text-center text-green-400';
+                banUsernameInput.value = '';
+                banReasonInput.value = '';
+            } catch (err) {
+                adminMsg.textContent = err.message || 'Failed to ban user';
+                adminMsg.className = 'text-sm text-center text-red-400';
+            }
+        });
+
+        if (unbanUserBtn) unbanUserBtn.addEventListener('click', async () => {
+            const username = unbanUsernameInput.value.trim();
+            
+            if (!username) {
+                adminMsg.textContent = 'Please enter a username';
+                adminMsg.className = 'text-sm text-center text-red-400';
+                return;
+            }
+            
+            try {
+                await unbanUser(username);
+                adminMsg.textContent = `User ${username} has been unbanned`;
+                adminMsg.className = 'text-sm text-center text-green-400';
+                unbanUsernameInput.value = '';
+            } catch (err) {
+                adminMsg.textContent = err.message || 'Failed to unban user';
+                adminMsg.className = 'text-sm text-center text-red-400';
+            }
+        });
+
+        // Profile picture event listeners
+        if (profilePicBtn) profilePicBtn.addEventListener('click', showProfilePicModal);
+        if (profilePicModalClose) profilePicModalClose.addEventListener('click', hideProfilePicModal);
+        if (removeProfilePicBtn) removeProfilePicBtn.addEventListener('click', removeProfilePicture);
+
+        if (profilePicSearch) {
+            let searchTimeout = null;
+            profilePicSearch.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchProfilePicGifs(e.target.value);
+                }, 500);
+            });
+        }
+
+        function checkCookieBan() {
+            // Check if user has a banned cookie
+            const bannedCookie = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('banned_user='));
+            
+            if (bannedCookie) {
+                showBanModal('You have been banned from this site.');
+                return true;
+            }
+            return false;
+        }
+
+        function preventBannedActions() {
+            // Check for cookie ban before any auth action
+            if (checkCookieBan()) {
+                return true; // Prevent action
+            }
+            return false; // Allow action
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            updateCharCount();
+            setFavicon(DEFAULT_FAVICON);
+            document.title = 'Online Notepad';
+            
+            // Check for cookie ban on page load
+            if (checkCookieBan()) {
+                // Hide auth screen and show ban modal
+                authScreen.classList.add('hidden');
+            }
+        });
+    </script>
 
     <!-- Load lock.js after DOM is ready -->
     <script src="lock.js"></script>
@@ -343,13 +1693,6 @@
         if (window.PinSystem && window.PinSystem.init) {
             window.PinSystem.init();
         }
-        
-        // Initialize the main application
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.init) {
-                window.init();
-            }
-        });
     </script>
 </body>
 </html>
