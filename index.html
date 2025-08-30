@@ -87,7 +87,15 @@
     <div id="chat-screen" class="min-h-screen flex flex-col hidden" aria-live="polite">
         <div class="bg-dark-800 border-b border-dark-600 px-6 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-4">
-                <span id="user-display" class="text-gray-300"></span>
+                <div class="flex items-center">
+                    <span id="user-display" class="text-gray-300"></span>
+                    <select id="status-select" class="user-status-select hidden">
+                        <option value="online">🟢 Online</option>
+                        <option value="away">🟡 Away</option>
+                        <option value="busy">🔴 Busy</option>
+                        <option value="offline">⚫ Offline</option>
+                    </select>
+                </div>
                 <div>
                     <select id="user-select" class="bg-dark-700 border border-dark-500 text-gray-200 rounded px-3 py-1">
                         <option value="">All (global)</option>
@@ -254,6 +262,9 @@
         const moderationModal = document.getElementById('moderation-modal');
         const moderationReason = document.getElementById('moderation-reason');
         const moderationOk = document.getElementById('moderation-ok');
+        const statusSelect = document.getElementById('status-select');
+
+        let currentUserStatus = 'online';
 
         function showError(message) {
             authError.textContent = message;
@@ -360,7 +371,13 @@
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content, user_id: currentUser.id, is_guest: currentUser.is_guest || false, recipient_id })
+                    body: JSON.stringify({ 
+                        content, 
+                        user_id: currentUser.id, 
+                        is_guest: currentUser.is_guest || false, 
+                        recipient_id,
+                        status: currentUserStatus 
+                    })
                 });
                 
                 const data = await response.json();
@@ -374,7 +391,15 @@
                     throw new Error(data.error || 'Request failed');
                 }
                 
-                return data.message || { id: Date.now(), display_name: currentUser ? currentUser.username : 'you', username: currentUser ? currentUser.username : 'you', is_guest: currentUser ? currentUser.is_guest : true, content, timestamp: Date.now() };
+                return data.message || { 
+                    id: Date.now(), 
+                    display_name: currentUser ? currentUser.username : 'you', 
+                    username: currentUser ? currentUser.username : 'you', 
+                    is_guest: currentUser ? currentUser.is_guest : true, 
+                    content, 
+                    timestamp: Date.now(),
+                    status: currentUserStatus 
+                };
             } catch (err) {
                 // Re-throw the error to be handled by the caller
                 throw err;
@@ -405,14 +430,19 @@
             const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
             const ownerBadge = (message.username && message.username.toLowerCase() === 'owner') ? `<i class="fas fa-shield-alt text-white ml-1" title="owner"></i>` : '';
             const dmLabel = (message.recipient_id != null) ? `<span class="dm-badge">DM ${message.recipient_username ? '→ [' + escapeHtml(message.recipient_username) + ']' : ''}</span>` : '';
+            
+            // Status indicator for non-guest users
+            const statusDot = !isGuest ? `<div class="status-dot status-${message.status || 'online'}"></div>` : '';
+            
             let deleteButtonHtml = '';
             if (currentUser && !currentUser.is_guest && currentUser.username && currentUser.username.toLowerCase() === 'owner') {
                 deleteButtonHtml = `<button data-delete-id="${message.id}" class="ml-3 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>`;
             }
             d.innerHTML = `
                 <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0">
+                    <div class="flex-shrink-0 status-indicator">
                         <div class="w-8 h-8 rounded-full bg-gradient-to-r ${avatarColor} flex items-center justify-center text-white text-sm font-medium">${escapeHtml(avatarChar)}</div>
+                        ${statusDot}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center space-x-2 mb-1">
@@ -494,10 +524,14 @@
         function showChatScreen(user) {
             currentUser = user;
             authScreen.classList.add('hidden'); chatScreen.classList.remove('hidden');
-            if (user.is_guest) userDisplay.innerHTML = '[guest]';
-            else {
+            if (user.is_guest) {
+                userDisplay.innerHTML = '[guest]';
+                statusSelect.classList.add('hidden');
+            } else {
                 if (user.username && user.username.toLowerCase() === 'owner') userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield">★</span>`;
                 else userDisplay.textContent = `[${user.username}]`;
+                statusSelect.classList.remove('hidden');
+                statusSelect.value = currentUserStatus;
             }
             loadUsers(); loadMessages(); startPolling(); messageInput.focus(); markAsSeen();
             if (window.PinSystem && !PinSystem.isUnlocked()) {
@@ -575,6 +609,14 @@
         });
 
         clearRecipientBtn.addEventListener('click', () => { currentRecipient = null; userSelect.value = ''; clearRecipientBtn.classList.add('hidden'); loadMessages(); });
+
+        statusSelect.addEventListener('change', () => {
+            currentUserStatus = statusSelect.value;
+            // Store status in localStorage to persist across sessions
+            if (currentUser && !currentUser.is_guest) {
+                localStorage.setItem(`user_status_${currentUser.username}`, currentUserStatus);
+            }
+        });
 
         document.addEventListener('visibilitychange', () => {
             if (currentUser) {
@@ -784,6 +826,15 @@
             updateCharCount();
             setFavicon(DEFAULT_FAVICON);
             document.title = 'Online Notepad';
+            
+            // Load saved status if available
+            if (currentUser && !currentUser.is_guest) {
+                const savedStatus = localStorage.getItem(`user_status_${currentUser.username}`);
+                if (savedStatus) {
+                    currentUserStatus = savedStatus;
+                    statusSelect.value = savedStatus;
+                }
+            }
         });
     </script>
 
