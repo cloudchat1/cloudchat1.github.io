@@ -37,15 +37,16 @@ const banOk = document.getElementById('ban-ok');
 function showAuthScreen() { 
     if (authScreen) authScreen.classList.remove('hidden'); 
     if (chatScreen) chatScreen.classList.add('hidden'); 
-    stopHeartbeat();
+    if (window.stopHeartbeat) window.stopHeartbeat();
     currentUser = null; 
+    window.currentUser = null;
     if (window.stopPolling) window.stopPolling(); 
     if (window.markAsSeen) window.markAsSeen();
-    if (window.stopHeartbeat) window.stopHeartbeat(); 
 }
 
 function showChatScreen(user) {
     currentUser = user;
+    window.currentUser = user;
     if (authScreen) authScreen.classList.add('hidden'); 
     if (chatScreen) chatScreen.classList.remove('hidden');
     
@@ -57,7 +58,7 @@ function showChatScreen(user) {
         // Load saved status if available
         const savedStatus = localStorage.getItem(`user_status_${user.username}`);
         if (savedStatus && ['online', 'away', 'busy', 'offline'].includes(savedStatus)) {
-            currentUserStatus = savedStatus;
+            if (window.updateUserStatus) window.updateUserStatus(savedStatus, false);
         }
         
         if (user.username && user.username.toLowerCase() === 'owner') {
@@ -69,7 +70,7 @@ function showChatScreen(user) {
         }
         if (statusSelect) {
             statusSelect.classList.remove('hidden');
-            statusSelect.value = currentUserStatus;
+            statusSelect.value = window.currentUserStatus || 'online';
         }
         
         // Start status tracking
@@ -198,9 +199,15 @@ function setupEventListeners() {
             const content = messageInput.value.trim(); 
             if (!content) return;
             
+            // Check if user is logged in
+            if (!window.currentUser) {
+                if (window.showError) window.showError('Please log in to send messages');
+                return;
+            }
+            
             if (window.setLoading) window.setLoading(true);
             try { 
-                const recipient_id = currentRecipient ? currentRecipient.id : null; 
+                const recipient_id = window.currentRecipient ? window.currentRecipient.id : null; 
                 const message = await window.sendMessage(content, recipient_id); 
                 messageInput.value = ''; 
                 if (window.updateCharCount) window.updateCharCount(); 
@@ -251,15 +258,15 @@ function setupEventListeners() {
         userSelect.addEventListener('change', () => {
             const val = userSelect.value;
             if (!val) { 
-                currentRecipient = null; 
+                window.currentRecipient = null; 
                 if (clearRecipientBtn) clearRecipientBtn.classList.add('hidden'); 
             } else { 
                 const u = window.usersList.find(x => String(x.id) === String(val)); 
                 if (u) { 
-                    currentRecipient = { id: u.id, username: u.username }; 
+                    window.currentRecipient = { id: u.id, username: u.username }; 
                     if (clearRecipientBtn) clearRecipientBtn.classList.remove('hidden'); 
                 } else { 
-                    currentRecipient = null; 
+                    window.currentRecipient = null; 
                     if (clearRecipientBtn) clearRecipientBtn.classList.add('hidden'); 
                 } 
             }
@@ -269,7 +276,7 @@ function setupEventListeners() {
 
     if (clearRecipientBtn) {
         clearRecipientBtn.addEventListener('click', () => { 
-            currentRecipient = null; 
+            window.currentRecipient = null; 
             if (userSelect) userSelect.value = ''; 
             clearRecipientBtn.classList.add('hidden'); 
             if (window.loadMessages) window.loadMessages(); 
@@ -278,7 +285,7 @@ function setupEventListeners() {
 
     if (statusSelect) {
         statusSelect.addEventListener('change', () => {
-            updateUserStatus(statusSelect.value);
+            if (window.updateUserStatus) window.updateUserStatus(statusSelect.value);
         });
     }
 
@@ -297,17 +304,17 @@ function setupEventListeners() {
 
     // Global event listeners
     document.addEventListener('visibilitychange', () => {
-        if (currentUser) {
+        if (window.currentUser) {
             if (document.hidden) { 
                 if (window.stopPolling) window.stopPolling();
                 // Set to away when tab becomes hidden
-                if (!currentUser.is_guest && window.currentUserStatus === 'online') {
+                if (!window.currentUser.is_guest && window.currentUserStatus === 'online') {
                     if (window.updateUserStatus) window.updateUserStatus('away');
                 }
             } else {
                 if (window.markAsSeen) window.markAsSeen();
                 // Reset to online when tab becomes visible again
-                if (!currentUser.is_guest && window.currentUserStatus === 'away') {
+                if (!window.currentUser.is_guest && window.currentUserStatus === 'away') {
                     if (window.updateUserStatus) window.updateUserStatus('online');
                 }
                 if (window.resetAwayTimer) window.resetAwayTimer();
@@ -324,7 +331,7 @@ function setupEventListeners() {
 
     window.addEventListener('focus', () => { 
         if (window.markAsSeen) window.markAsSeen(); 
-        if (currentUser && !currentUser.is_guest) {
+        if (window.currentUser && !window.currentUser.is_guest) {
             if (window.resetAwayTimer) window.resetAwayTimer();
             if (window.currentUserStatus === 'away') {
                 if (window.updateUserStatus) window.updateUserStatus('online');
@@ -338,7 +345,7 @@ function setupEventListeners() {
     // Track user activity to reset away timer
     ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
         document.addEventListener(event, () => {
-            if (currentUser && !currentUser.is_guest) {
+            if (window.currentUser && !window.currentUser.is_guest) {
                 if (window.resetAwayTimer) window.resetAwayTimer();
             }
         }, { passive: true });
@@ -359,6 +366,21 @@ function init() {
     // Set global variables for other modules
     window.currentUser = currentUser;
     window.currentRecipient = currentRecipient;
+    
+    // Ensure currentUser is accessible globally
+    if (typeof window.currentUser === 'undefined') {
+        window.currentUser = null;
+    }
+    
+    // Keep local and global variables in sync
+    Object.defineProperty(window, 'currentRecipient', {
+        get: function() {
+            return currentRecipient;
+        },
+        set: function(value) {
+            currentRecipient = value;
+        }
+    });
     window.API_BASE_URL = window.API_BASE_URL || 'https://chat.nighthawk.work/api';
     window.AWAY_TIMEOUT = window.AWAY_TIMEOUT || 5 * 60 * 1000;
     window.HEARTBEAT_INTERVAL = window.HEARTBEAT_INTERVAL || 30 * 1000;
