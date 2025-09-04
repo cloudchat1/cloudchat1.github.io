@@ -401,6 +401,25 @@
             const d = document.createElement('div'); d.textContent = text; return d.innerHTML;
         }
 
+        function parseMentions(text) {
+            // Parse @mentions and return HTML with styled mentions
+            if (!text) return '';
+            
+            // Escape HTML first
+            const escaped = escapeHtml(text);
+            
+            // Replace @username patterns with styled mentions
+            return escaped.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+        }
+
+        function isUserMentioned(messageContent, currentUsername) {
+            if (!messageContent || !currentUsername) return false;
+            
+            // Check if the message contains @currentUsername (case insensitive)
+            const mentionPattern = new RegExp(`@${currentUsername}\\b`, 'i');
+            return mentionPattern.test(messageContent);
+        }
+
         function formatTime(timestamp) {
             const d = new Date(timestamp);
             return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -884,11 +903,19 @@
             const d = document.createElement('div');
             d.className = 'message-item fade-in';
             d.dataset.messageId = message.id;
+            
+            // Check if current user is mentioned in this message
+            const isMentioned = currentUser && !currentUser.is_guest && 
+                               isUserMentioned(message.content, currentUser.username);
+            
+            if (isMentioned) {
+                d.classList.add('mentioned-message');
+            }
             const isGuest = message.is_guest;
             const avatarChar = isGuest ? 'G' : (message.username && message.username[0] ? message.username[0].toUpperCase() : 'U');
             const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
             const ownerBadge = (message.username && message.username.toLowerCase() === 'owner') ? `<i class="fas fa-shield-alt text-white ml-1" title="owner"></i>` : '';
-            const dmLabel = (message.recipient_id != null) ? `<span class="dm-badge">DM ${message.recipient_username ? '→ [' + escapeHtml(message.recipient_username) + ']' : ''}</span>` : '';
+            const dmLabel = (message.recipient_id != null) ? `<span class="dm-badge">DM ${message.recipient_username ? '→ ' + escapeHtml(message.recipient_username) : ''}</span>` : '';
             
             // Status indicator for non-guest users - use current status from usersList
             let currentStatus = 'offline';
@@ -933,7 +960,7 @@
                     </div>
                 `;
             } else {
-                messageContent = `<div class="text-gray-300 break-words">${escapeHtml(message.content)}</div>`;
+                messageContent = `<div class="text-gray-300 break-words">${parseMentions(message.content)}</div>`;
             }
             
             d.innerHTML = `
@@ -1030,7 +1057,7 @@
             currentUser = user;
             authScreen.classList.add('hidden'); chatScreen.classList.remove('hidden');
             if (user.is_guest) {
-                userDisplay.innerHTML = '[guest]';
+                userDisplay.innerHTML = 'guest';
                 statusSelect.classList.add('hidden');
                 profilePicBtn.classList.add('hidden');
             } else {
@@ -1041,10 +1068,10 @@
                 }
                 
                 if (user.username && user.username.toLowerCase() === 'owner') {
-                    userDisplay.innerHTML = `[${escapeHtml(user.username)}] <span class="owner-shield">★</span>`;
+                    userDisplay.innerHTML = `${escapeHtml(user.username)} <span class="owner-shield">★</span>`;
                     adminBtn.classList.remove('hidden');
                 } else {
-                    userDisplay.textContent = `[${user.username}]`;
+                    userDisplay.textContent = user.username;
                     adminBtn.classList.add('hidden');
                 }
                 statusSelect.classList.remove('hidden');
