@@ -393,7 +393,7 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
 /* @mention styles */
 .mention {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #5865f2;
   color: #fff;
   padding: 2px 6px;
   border-radius: 6px;
@@ -412,8 +412,8 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
 /* Mentioned message highlighting */
 .mentioned-message {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  border-left: 4px solid #667eea;
+  background: rgba(88, 101, 242, 0.1);
+  border-left: 4px solid #5865f2;
   border-radius: 8px;
   padding: 12px 8px;
   margin: 4px 0;
@@ -422,15 +422,100 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
 @keyframes mentionPulse {
   0% { 
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
-    transform: scale(1.02);
+    background: rgba(88, 101, 242, 0.2);
+    transform: scale(1.01);
   }
   100% { 
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    background: rgba(88, 101, 242, 0.1);
     transform: scale(1);
   }
 }
 
 .mentioned-message:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  background: rgba(88, 101, 242, 0.15);
+}
+
+/* Mention Autocomplete */
+.mention-autocomplete {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  background: var(--dark-800);
+  border: 1px solid var(--dark-600);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.mention-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.mention-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--dark-600);
+}
+
+.mention-item:last-child {
+  border-bottom: none;
+}
+
+.mention-item:hover,
+.mention-item.selected {
+  background: var(--dark-700);
+}
+
+.mention-item-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.mention-item-username {
+  color: #fff;
+  font-weight: 500;
+}
+
+.mention-item-status {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.mention-item-status.online {
+  background: #23a55a;
+  color: #fff;
+}
+
+.mention-item-status.away {
+  background: #f0b132;
+  color: #000;
+}
+
+.mention-item-status.busy {
+  background: #f23f43;
+  color: #fff;
+}
+
+.mention-item-status.offline {
+  background: #80848e;
+  color: #fff;
 }
