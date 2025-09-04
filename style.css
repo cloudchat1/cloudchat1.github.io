@@ -390,3 +390,47 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
     max-width: 200px;
   }
 }
+
+/* @mention styles */
+.mention {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9em;
+  display: inline-block;
+  margin: 0 1px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.mention:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* Mentioned message highlighting */
+.mentioned-message {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-left: 4px solid #667eea;
+  border-radius: 8px;
+  padding: 12px 8px;
+  margin: 4px 0;
+  animation: mentionPulse 0.6s ease-out;
+}
+
+@keyframes mentionPulse {
+  0% { 
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+    transform: scale(1.02);
+  }
+  100% { 
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    transform: scale(1);
+  }
+}
+
+.mentioned-message:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+}
