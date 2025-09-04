@@ -241,7 +241,7 @@
             </div>
 
             <div class="mb-4">
-                <p class="text-sm text-gray-400 mb-3">Search for a GIF from Tenor to use as your profile picture:</p>
+                <p class="text-sm text-gray-400 mb-3">Search for a GIF from Klipy to use as your profile picture:</p>
                 <input type="text" id="profile-pic-search" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400" placeholder="Search for GIFs..." autocomplete="off">
             </div>
 
@@ -920,7 +920,7 @@
             }
             
             // Check if message content is a GIF URL
-            const isGifMessage = message.content && (message.content.startsWith('http') && (message.content.includes('.gif') || message.content.includes('tenor.com') || message.content.includes('giphy.com')));
+            const isGifMessage = message.content && (message.content.startsWith('http') && (message.content.includes('.gif') || message.content.includes('klipy.com') || message.content.includes('giphy.com')));
             
             let messageContent;
             if (isGifMessage) {
