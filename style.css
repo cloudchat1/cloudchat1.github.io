@@ -519,3 +519,185 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   background: #80848e;
   color: #fff;
 }
+
+/* File upload styles */
+.file-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.file-btn:hover {
+  color: #fff;
+  background: var(--dark-600);
+}
+
+.file-btn.active {
+  color: var(--blue-500);
+}
+
+/* File attachment styles */
+.file-attachment {
+  display: inline-block;
+  background: var(--dark-700);
+  border: 1px solid var(--dark-600);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  transition: all 0.2s ease;
+}
+
+.file-attachment:hover {
+  background: var(--dark-600);
+  border-color: var(--dark-500);
+}
+
+.file-attachment a {
+  color: #5865f2;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.file-attachment a:hover {
+  text-decoration: underline;
+}
+
+.file-attachment .file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-attachment .file-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dark-600);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.file-attachment .file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-attachment .file-name {
+  color: #fff;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.file-attachment .file-size {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Group chat styles */
+.group-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  margin-left: 6px;
+}
+
+.group-member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.group-member-item:hover {
+  background: var(--dark-600);
+}
+
+.group-member-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-member-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.group-member-name {
+  color: #fff;
+  font-weight: 500;
+}
+
+.group-member-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.group-member-actions button {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.group-member-actions .remove-btn {
+  background: var(--red-600);
+  color: #fff;
+}
+
+.group-member-actions .remove-btn:hover {
+  background: var(--red-700);
+}
+
+.group-member-actions .owner-badge {
+  background: var(--dark-600);
+  color: var(--muted);
+  cursor: default;
+}
+
+/* Drag and drop styles */
+.drag-over {
+  border-color: #5865f2 !important;
+  background: rgba(88, 101, 242, 0.1) !important;
+}
+
+.upload-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--dark-600);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: #5865f2;
+  transition: width 0.3s ease;
+  border-radius: 0 0 8px 8px;
+}
