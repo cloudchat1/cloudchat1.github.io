@@ -96,6 +96,28 @@
                         <option value="offline">⚫ Offline</option>
                     </select>
                 </div>
+                
+                <!-- Chat Mode Navigation -->
+                <div class="flex space-x-2 relative">
+                    <button id="global-chat-btn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium">
+                        Global
+                    </button>
+                    <div class="relative">
+                        <button id="groups-btn" class="px-4 py-2 bg-dark-700 text-gray-300 rounded text-sm font-medium hover:bg-dark-600">
+                            Groups
+                        </button>
+                        <!-- Groups Dropdown -->
+                        <div id="groups-dropdown" class="absolute top-full left-0 mt-2 w-64 bg-dark-800 border border-dark-600 rounded-lg shadow-lg hidden z-50">
+                            <div class="p-3 border-b border-dark-600">
+                                <h3 class="text-white font-semibold text-sm">Group Chats</h3>
+                            </div>
+                            <div id="groups-list" class="max-h-64 overflow-y-auto">
+                                <!-- Groups will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div>
                     <select id="user-select" class="bg-dark-700 border border-dark-500 text-gray-200 rounded px-3 py-1">
                         <option value="">All (global)</option>
@@ -118,51 +140,7 @@
             </div>
         </div>
 
-        <div class="flex-1 flex">
-            <!-- Sidebar -->
-            <div class="w-64 bg-dark-800 border-r border-dark-600 flex flex-col">
-                <!-- Chat Navigation -->
-                <div class="p-4 border-b border-dark-600">
-                    <div class="flex space-x-2">
-                        <button id="global-chat-btn" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium">
-                            Global
-                        </button>
-                        <button id="dms-btn" class="flex-1 px-3 py-2 bg-dark-700 text-gray-300 rounded text-sm font-medium hover:bg-dark-600">
-                            DMs
-                        </button>
-                        <button id="groups-btn" class="flex-1 px-3 py-2 bg-dark-700 text-gray-300 rounded text-sm font-medium hover:bg-dark-600">
-                            Groups
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Global Chat Users List -->
-                <div id="global-users-section" class="flex-1 overflow-y-auto p-4">
-                    <h3 class="text-white font-semibold mb-3">Online Users</h3>
-                    <div id="users-list" class="space-y-2">
-                        <!-- Users will be populated here -->
-                    </div>
-                </div>
-
-                <!-- DMs List -->
-                <div id="dms-section" class="flex-1 overflow-y-auto p-4 hidden">
-                    <h3 class="text-white font-semibold mb-3">Direct Messages</h3>
-                    <div id="dms-list" class="space-y-2">
-                        <!-- DMs will be populated here -->
-                    </div>
-                </div>
-
-                <!-- Groups List -->
-                <div id="groups-section" class="flex-1 overflow-y-auto p-4 hidden">
-                    <h3 class="text-white font-semibold mb-3">Group Chats</h3>
-                    <div id="groups-list" class="space-y-2">
-                        <!-- Groups will be populated here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main Chat Area -->
-            <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col">
             <div id="messages-container" class="flex-1 overflow-y-auto bg-dark-900 p-4 space-y-3">
                 <div id="empty-state" class="text-center text-gray-400 py-8">
                     <div class="text-4xl mb-4">💬</div>
@@ -761,31 +739,33 @@
             document.getElementById('create-group-msg').textContent = '';
         }
 
-        // Sidebar navigation functions
-        function switchChatMode(mode) {
-            currentChatMode = mode;
+        // Chat navigation functions
+        function switchToGlobal() {
+            currentChatMode = 'global';
+            currentGroup = null;
+            currentRecipient = null;
             
             // Update navigation buttons
-            document.getElementById('global-chat-btn').classList.remove('active');
-            document.getElementById('dms-btn').classList.remove('active');
-            document.getElementById('groups-btn').classList.remove('active');
+            document.getElementById('global-chat-btn').classList.remove('bg-dark-700', 'text-gray-300');
+            document.getElementById('global-chat-btn').classList.add('bg-blue-600', 'text-white');
+            document.getElementById('groups-btn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('groups-btn').classList.add('bg-dark-700', 'text-gray-300');
             
-            // Hide all sections
-            document.getElementById('global-users-section').classList.add('hidden');
-            document.getElementById('dms-section').classList.add('hidden');
-            document.getElementById('groups-section').classList.add('hidden');
+            // Hide groups dropdown
+            document.getElementById('groups-dropdown').classList.add('hidden');
             
-            // Show active section and button
-            if (mode === 'global') {
-                document.getElementById('global-chat-btn').classList.add('active');
-                document.getElementById('global-users-section').classList.remove('hidden');
-            } else if (mode === 'dm') {
-                document.getElementById('dms-btn').classList.add('active');
-                document.getElementById('dms-section').classList.remove('hidden');
-            } else if (mode === 'group') {
-                document.getElementById('groups-btn').classList.add('active');
-                document.getElementById('groups-section').classList.remove('hidden');
-            }
+            // Update UI
+            document.getElementById('user-display').textContent = currentUser.username;
+            document.getElementById('clear-recipient-btn').classList.add('hidden');
+            
+            // Clear messages and load global messages
+            document.getElementById('messages-container').innerHTML = '';
+            loadMessages();
+        }
+
+        function toggleGroupsDropdown() {
+            const dropdown = document.getElementById('groups-dropdown');
+            dropdown.classList.toggle('hidden');
         }
 
         function renderGroupsList() {
@@ -799,26 +779,27 @@
             
             userGroups.forEach(group => {
                 const groupItem = document.createElement('div');
-                groupItem.className = 'chat-list-item';
+                groupItem.className = 'flex items-center justify-between p-3 hover:bg-dark-700 cursor-pointer border-b border-dark-600 last:border-b-0';
                 if (currentGroup && currentGroup.id === group.id) {
-                    groupItem.classList.add('active');
+                    groupItem.classList.add('bg-dark-700');
                 }
                 
                 groupItem.innerHTML = `
-                    <div class="chat-avatar">
-                        <i class="fas fa-users"></i>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-users text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="text-white font-medium text-sm">${escapeHtml(group.name)}</div>
+                            <div class="text-gray-400 text-xs">${group.members.length} members</div>
+                        </div>
                     </div>
-                    <div class="chat-info">
-                        <div class="chat-name">${escapeHtml(group.name)}</div>
-                        <div class="chat-meta">${group.members.length} members</div>
-                    </div>
-                    <div class="chat-actions">
-                        ${group.owner_id === currentUser.id ? '<button class="group-manage-btn text-gray-400 hover:text-white" title="Manage Group"><i class="fas fa-cog"></i></button>' : ''}
-                    </div>
+                    ${group.owner_id === currentUser.id ? '<button class="group-manage-btn text-gray-400 hover:text-white p-1" title="Manage Group"><i class="fas fa-cog text-xs"></i></button>' : ''}
                 `;
                 
                 groupItem.addEventListener('click', () => {
                     selectGroup(group);
+                    document.getElementById('groups-dropdown').classList.add('hidden');
                 });
                 
                 // Add manage button event listener
@@ -838,6 +819,12 @@
             currentGroup = group;
             currentRecipient = null;
             currentChatMode = 'group';
+            
+            // Update navigation buttons
+            document.getElementById('global-chat-btn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('global-chat-btn').classList.add('bg-dark-700', 'text-gray-300');
+            document.getElementById('groups-btn').classList.remove('bg-dark-700', 'text-gray-300');
+            document.getElementById('groups-btn').classList.add('bg-blue-600', 'text-white');
             
             // Update UI
             document.getElementById('user-display').textContent = `Group: ${group.name}`;
@@ -1796,13 +1783,13 @@
                 startHeartbeat();
                 resetAwayTimer();
                 
-                // Load user groups and set up sidebar
+                // Load user groups and set up navigation
                 loadUserGroups().then(() => {
                     renderGroupsList();
                 });
                 
                 // Set initial chat mode
-                switchChatMode('global');
+                switchToGlobal();
             }
             loadUsers(); loadMessages(); startPolling(); messageInput.focus(); markAsSeen();
             if (window.PinSystem && !PinSystem.isUnlocked()) {
@@ -2531,14 +2518,21 @@
         if (profilePicModalClose) profilePicModalClose.addEventListener('click', hideProfilePicModal);
         if (removeProfilePicBtn) removeProfilePicBtn.addEventListener('click', removeProfilePicture);
 
-        // Sidebar navigation event listeners
+        // Chat navigation event listeners
         const globalChatBtn = document.getElementById('global-chat-btn');
-        const dmsBtn = document.getElementById('dms-btn');
         const groupsBtn = document.getElementById('groups-btn');
         
-        if (globalChatBtn) globalChatBtn.addEventListener('click', () => switchChatMode('global'));
-        if (dmsBtn) dmsBtn.addEventListener('click', () => switchChatMode('dm'));
-        if (groupsBtn) groupsBtn.addEventListener('click', () => switchChatMode('group'));
+        if (globalChatBtn) globalChatBtn.addEventListener('click', switchToGlobal);
+        if (groupsBtn) groupsBtn.addEventListener('click', toggleGroupsDropdown);
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('groups-dropdown');
+            const groupsBtn = document.getElementById('groups-btn');
+            if (!dropdown.contains(e.target) && !groupsBtn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
 
         // Group chat event listeners
         const createGroupBtn = document.getElementById('create-group-btn');
