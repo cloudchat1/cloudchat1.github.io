@@ -251,7 +251,7 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 .pin-box { cursor: text; }
 
 /* Modal Centering */
-#users-modal, #group-management-modal, #create-group-modal {
+#users-modal:not(.hidden), #group-management-modal:not(.hidden), #create-group-modal:not(.hidden) {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
