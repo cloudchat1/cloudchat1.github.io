@@ -541,15 +541,16 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   color: var(--blue-500);
 }
 
-/* File attachment styles */
+/* File attachment styles - Discord-like embeds */
 .file-attachment {
-  display: inline-block;
+  display: block;
   background: var(--dark-700);
   border: 1px solid var(--dark-600);
   border-radius: 8px;
-  padding: 8px 12px;
-  margin: 4px 0;
+  margin: 8px 0;
   transition: all 0.2s ease;
+  overflow: hidden;
+  max-width: 400px;
 }
 
 .file-attachment:hover {
@@ -567,38 +568,233 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   text-decoration: underline;
 }
 
-.file-attachment .file-info {
+/* Image attachment styles */
+.image-attachment {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.image-attachment:hover {
+  background: transparent;
+  border: none;
+}
+
+.image-preview {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.image-preview:hover {
+  transform: scale(1.02);
+}
+
+.image-preview img {
+  width: 100%;
+  max-width: 400px;
+  max-height: 300px;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+}
+
+.image-attachment .file-info {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 12px;
+  background: var(--dark-700);
+  border-radius: 8px;
+  border: 1px solid var(--dark-600);
+}
+
+/* Document attachment styles */
+.document-attachment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--dark-700);
+  border: 1px solid var(--dark-600);
+}
+
+.document-attachment .file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
 }
 
 .file-attachment .file-icon {
-  width: 20px;
-  height: 20px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--dark-600);
-  border-radius: 4px;
+  border-radius: 8px;
   color: #fff;
-  font-size: 12px;
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
 .file-attachment .file-details {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .file-attachment .file-name {
   color: #fff;
   font-weight: 500;
   font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-attachment .file-size {
   color: var(--muted);
   font-size: 12px;
+}
+
+.file-attachment .file-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.file-attachment .file-type {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  background: var(--dark-600);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.file-attachment .file-actions {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--dark-600);
+  border-radius: 6px;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.download-btn:hover {
+  background: var(--dark-500);
+  color: #fff;
+  text-decoration: none;
+}
+
+.download-btn i {
+  font-size: 14px;
+}
+
+/* Responsive file attachments */
+@media (max-width: 640px) {
+  .file-attachment {
+    max-width: 100%;
+  }
+  
+  .image-preview img {
+    max-width: 100%;
+    max-height: 200px;
+  }
+  
+  .document-attachment {
+    padding: 8px;
+  }
+  
+  .file-attachment .file-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .file-attachment .file-name {
+    font-size: 13px;
+  }
+  
+  .file-attachment .file-size,
+  .file-attachment .file-type {
+    font-size: 11px;
+  }
+}
+
+/* File attachment animations */
+.file-attachment {
+  animation: fileAppear 0.3s ease-out;
+}
+
+@keyframes fileAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Image hover effects */
+.image-preview {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-preview::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.image-preview:hover::after {
+  opacity: 1;
+}
+
+/* File type specific styling */
+.file-attachment[data-file-type="image"] .file-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.file-attachment[data-file-type="video"] .file-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.file-attachment[data-file-type="audio"] .file-icon {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.file-attachment[data-file-type="document"] .file-icon {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.file-attachment[data-file-type="archive"] .file-icon {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 }
 
 /* Group chat styles */
