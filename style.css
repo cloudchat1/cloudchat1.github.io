@@ -250,14 +250,14 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
 .pin-box { cursor: text; }
 
-/* Users Modal Centering */
-#users-modal {
+/* Modal Centering */
+#users-modal, #group-management-modal, #create-group-modal {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-#users-modal > div {
+#users-modal > div, #group-management-modal > div, #create-group-modal > div {
   margin: auto;
 }
 
