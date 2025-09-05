@@ -435,6 +435,11 @@
         </div>
     </div>
 
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2">
+        <!-- Toast notifications will be added here -->
+    </div>
+
     <!-- FULLSCREEN LOCK OVERLAY (new: full-screen, big boxes, blocking) -->
     <div id="lock-overlay" class="fixed inset-0 z-60 hidden">
         <!-- Full-screen dim + blur -->
@@ -567,6 +572,91 @@
                 localStorage.setItem('dmHistory', JSON.stringify(dmHistory));
             } catch (error) {
                 console.error('Failed to save DM history:', error);
+            }
+        }
+
+        // Toast notification system
+        function showToast(type, title, message, duration = 5000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="removeToast(this.parentElement)">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto-remove after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    removeToast(toast);
+                }, duration);
+            }
+
+            return toast;
+        }
+
+        function removeToast(toast) {
+            if (!toast) return;
+            
+            toast.classList.add('toast-removing');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.parentElement.removeChild(toast);
+                }
+            }, 300);
+        }
+
+        // API availability check
+        async function checkAPIAvailability() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'ok') {
+                        console.log('API is available and responsive');
+                        return true;
+                    }
+                }
+                
+                throw new Error('API returned invalid response');
+            } catch (error) {
+                console.error('API availability check failed:', error);
+                
+                if (error.name === 'AbortError') {
+                    showToast('error', 'API Unavailable', 'The API is not responding. Please check your connection and try again.', 0);
+                } else if (error.message.includes('Failed to fetch')) {
+                    showToast('error', 'API Unavailable', 'Cannot connect to the API. The service may be down.', 0);
+                } else {
+                    showToast('error', 'API Unavailable', 'The API is not responding properly. Please try again later.', 0);
+                }
+                
+                return false;
             }
         }
 
@@ -3078,6 +3168,9 @@
             updateCharCount();
             setFavicon(DEFAULT_FAVICON);
             document.title = 'Online Notepad';
+            
+            // Check API availability on page load
+            checkAPIAvailability();
             
             // Check for cookie ban on page load
             if (checkCookieBan()) {
