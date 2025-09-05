@@ -107,6 +107,7 @@
                 <button id="clear-recipient-btn" class="text-xs text-gray-400 hover:text-white hidden">Clear DM</button>
 
                 <div class="flex items-center space-x-2">
+                    <button id="create-group-btn" title="Create Group Chat" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700 hidden"><i class="fas fa-users mr-1"></i>Create Group</button>
                     <button id="profile-pic-btn" title="Set Profile Picture" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700 hidden"><i class="fas fa-user-circle mr-1"></i>Avatar</button>
                     <button id="pin-btn" title="Set / Change PIN" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fa-solid fa-keyboard mr-2"></i>PIN</button>
                     <button id="lock-now-btn" title="Lock now" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fas fa-lock mr-1"></i>Lock</button>
@@ -129,6 +130,9 @@
                 <form id="message-form" class="flex space-x-3">
                     <div class="flex-1 message-input-container">
                         <div class="flex">
+                            <button type="button" id="file-btn" class="file-btn mr-2" title="Upload File">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
                             <button type="button" id="gif-btn" class="gif-btn mr-2" title="Send GIF">
                                 <i class="fas fa-images"></i>
                             </button>
@@ -152,6 +156,9 @@
                                 <!-- User suggestions will be populated here -->
                             </div>
                         </div>
+                        
+                        <!-- Hidden file input -->
+                        <input type="file" id="file-input" class="hidden" accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.webp,.svg,.mp4,.webm,.mp3,.wav,.ogg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.tar,.gz" multiple>
                     </div>
                     <button type="submit" id="send-button" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
                         <span id="send-text">Send</span>
@@ -298,6 +305,86 @@
         </div>
     </div>
 
+    <!-- CREATE GROUP CHAT MODAL -->
+    <div id="create-group-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md rounded-2xl p-6 shadow-2xl border border-dark-600 bg-dark-800" role="dialog" aria-modal="true">
+            <div class="flex items-start justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Create Group Chat</h3>
+                <button id="create-group-modal-close" class="text-gray-400 hover:text-white" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-white mb-2 block">Group Name</label>
+                    <input id="group-name-input" type="text" placeholder="Enter group name..." maxlength="50" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400">
+                </div>
+
+                <div>
+                    <label class="text-sm font-medium text-white mb-2 block">Add Members</label>
+                    <div id="group-members-list" class="max-h-40 overflow-y-auto border border-dark-500 rounded-lg p-2 bg-dark-700">
+                        <!-- User checkboxes will be populated here -->
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="create-group-btn" class="flex-1 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Create Group</button>
+                    <button id="cancel-group-btn" class="flex-1 px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancel</button>
+                </div>
+
+                <div id="create-group-msg" class="text-sm text-center"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GROUP MANAGEMENT MODAL -->
+    <div id="group-management-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md rounded-2xl p-6 shadow-2xl border border-dark-600 bg-dark-800" role="dialog" aria-modal="true">
+            <div class="flex items-start justify-between mb-4">
+                <h3 id="group-management-title" class="text-lg font-semibold text-white">Group Management</h3>
+                <button id="group-management-modal-close" class="text-gray-400 hover:text-white" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-white mb-2 block">Group Name</label>
+                    <div class="flex gap-2">
+                        <input id="group-rename-input" type="text" class="flex-1 p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400">
+                        <button id="group-rename-btn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Rename</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-sm font-medium text-white mb-2 block">Add Member</label>
+                    <div class="flex gap-2">
+                        <select id="group-add-member-select" class="flex-1 p-3 rounded-lg bg-dark-700 border border-dark-500 text-white">
+                            <option value="">Select user to add...</option>
+                        </select>
+                        <button id="group-add-member-btn" class="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white">Add</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-sm font-medium text-white mb-2 block">Members</label>
+                    <div id="group-members-management" class="max-h-40 overflow-y-auto border border-dark-500 rounded-lg p-2 bg-dark-700">
+                        <!-- Members list will be populated here -->
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="group-delete-btn" class="flex-1 px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white">Delete Group</button>
+                </div>
+
+                <div id="group-management-msg" class="text-sm text-center"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- FULLSCREEN LOCK OVERLAY (new: full-screen, big boxes, blocking) -->
     <div id="lock-overlay" class="fixed inset-0 z-60 hidden">
         <!-- Full-screen dim + blur -->
@@ -397,6 +484,11 @@
         let awayTimeout = null;
         const AWAY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
         const HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
+        
+        // Group chat and file upload state
+        let currentGroup = null;
+        let userGroups = [];
+        let pendingFiles = [];
 
         function showError(message) {
             authError.textContent = message;
@@ -425,6 +517,166 @@
             // Check if the message contains @currentUsername (case insensitive)
             const mentionPattern = new RegExp(`@${currentUsername}\\b`, 'i');
             return mentionPattern.test(messageContent);
+        }
+
+        // File upload functionality
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const iconMap = {
+                'pdf': '📄', 'doc': '📄', 'docx': '📄', 'txt': '📄',
+                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'webp': '🖼️', 'svg': '🖼️',
+                'mp4': '🎥', 'webm': '🎥', 'avi': '🎥',
+                'mp3': '🎵', 'wav': '🎵', 'ogg': '🎵',
+                'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦', 'gz': '📦',
+                'xls': '📊', 'xlsx': '📊', 'ppt': '📊', 'pptx': '📊'
+            };
+            return iconMap[ext] || '📎';
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/upload`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Upload failed');
+                }
+                
+                return data.file;
+            } catch (err) {
+                console.error('File upload failed:', err);
+                throw err;
+            }
+        }
+
+        async function sendFileMessage(file) {
+            if (!currentUser) return;
+            
+            setLoading(true);
+            try {
+                const fileInfo = await uploadFile(file);
+                
+                const recipient_id = currentRecipient ? currentRecipient.id : null;
+                const group_id = currentGroup ? currentGroup.id : null;
+                
+                const message = await sendMessage('', recipient_id, group_id, fileInfo);
+                addMessage(message, true, true);
+                
+            } catch (err) {
+                console.error('Failed to send file:', err);
+                showError(err.message || 'Failed to send file');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Group chat functionality
+        async function createGroupChat(name, memberIds) {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/groups`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        owner_id: currentUser.id,
+                        member_ids: memberIds
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create group');
+                }
+                
+                return data.group;
+            } catch (err) {
+                console.error('Failed to create group:', err);
+                throw err;
+            }
+        }
+
+        async function loadUserGroups() {
+            if (!currentUser || currentUser.is_guest) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/groups/user/${currentUser.id}`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load groups');
+                }
+                
+                userGroups = data.groups || [];
+                return userGroups;
+            } catch (err) {
+                console.error('Failed to load user groups:', err);
+                return [];
+            }
+        }
+
+        function showCreateGroupModal() {
+            const modal = document.getElementById('create-group-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Populate members list
+            const membersList = document.getElementById('group-members-list');
+            membersList.innerHTML = '';
+            
+            usersList.forEach(user => {
+                if (user.id !== currentUser.id) { // Don't include current user
+                    const memberItem = document.createElement('div');
+                    memberItem.className = 'flex items-center space-x-2 p-2 hover:bg-dark-600 rounded';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = user.id;
+                    checkbox.id = `member-${user.id}`;
+                    checkbox.className = 'rounded';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `member-${user.id}`;
+                    label.className = 'text-white cursor-pointer';
+                    label.textContent = user.username;
+                    
+                    memberItem.appendChild(checkbox);
+                    memberItem.appendChild(label);
+                    membersList.appendChild(memberItem);
+                }
+            });
+        }
+
+        function hideCreateGroupModal() {
+            const modal = document.getElementById('create-group-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            
+            // Clear form
+            document.getElementById('group-name-input').value = '';
+            document.getElementById('create-group-msg').textContent = '';
         }
 
         // Mention autocomplete functionality
@@ -995,7 +1247,7 @@
                 return data.user;
             }
         }
-        async function sendMessage(content, recipient_id = null) {
+        async function sendMessage(content, recipient_id = null, group_id = null, file_attachment = null) {
             try {
                 const response = await fetch(`${API_BASE_URL}/messages`, {
                     method: 'POST',
@@ -1006,6 +1258,8 @@
                         user_id: currentUser.id, 
                         is_guest: currentUser.is_guest || false, 
                         recipient_id,
+                        group_id,
+                        file_attachment,
                         status: currentUserStatus 
                     })
                 });
@@ -1068,6 +1322,7 @@
             const avatarColor = isGuest ? 'from-gray-500 to-gray-600' : 'from-blue-500 to-purple-600';
             const ownerBadge = (message.username && message.username.toLowerCase() === 'owner') ? `<i class="fas fa-shield-alt text-white ml-1" title="owner"></i>` : '';
             const dmLabel = (message.recipient_id != null) ? `<span class="dm-badge">DM ${message.recipient_username ? '→ ' + escapeHtml(message.recipient_username) : ''}</span>` : '';
+            const groupLabel = (message.group_id != null) ? `<span class="group-badge">Group: ${message.group_name ? escapeHtml(message.group_name) : 'Unknown'}</span>` : '';
             
             // Status indicator for non-guest users - use current status from usersList
             let currentStatus = 'offline';
@@ -1101,7 +1356,9 @@
             // Check if message content is a GIF URL
             const isGifMessage = message.content && (message.content.startsWith('http') && (message.content.includes('.gif') || message.content.includes('klipy.com') || message.content.includes('giphy.com')));
             
-            let messageContent;
+            let messageContent = '';
+            
+            // Handle GIF messages
             if (isGifMessage) {
                 messageContent = `
                     <div class="gif-message">
@@ -1111,8 +1368,34 @@
                         </div>
                     </div>
                 `;
-            } else {
-                messageContent = `<div class="text-gray-300 break-words">${parseMentions(message.content)}</div>`;
+            }
+            
+            // Handle file attachments
+            if (message.file_attachment) {
+                const file = message.file_attachment;
+                const fileIcon = getFileIcon(file.filename);
+                const fileSize = formatFileSize(file.size);
+                
+                messageContent += `
+                    <div class="file-attachment">
+                        <div class="file-info">
+                            <div class="file-icon">${fileIcon}</div>
+                            <div class="file-details">
+                                <div class="file-name">
+                                    <a href="${API_BASE_URL}${file.url}" target="_blank" rel="noopener noreferrer">
+                                        ${escapeHtml(file.filename)}
+                                    </a>
+                                </div>
+                                <div class="file-size">${fileSize}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Handle text content
+            if (message.content && !isGifMessage) {
+                messageContent += `<div class="text-gray-300 break-words">${parseMentions(message.content)}</div>`;
             }
             
             d.innerHTML = `
@@ -1126,6 +1409,7 @@
                             <span class="font-medium text-white">${escapeHtml(message.display_name)}</span>
                             ${ownerBadge}
                             <span class="ml-2">${dmLabel}</span>
+                            <span class="ml-2">${groupLabel}</span>
                             ${deleteButtonHtml}
                             <span class="text-xs text-gray-400">${formatTime(message.timestamp)}</span>
                         </div>
@@ -1247,6 +1531,7 @@
                 statusSelect.classList.remove('hidden');
                 statusSelect.value = currentUserStatus;
                 profilePicBtn.classList.remove('hidden');
+                document.getElementById('create-group-btn').classList.remove('hidden');
                 
                 // Start status tracking
                 startHeartbeat();
@@ -1320,8 +1605,9 @@
             const content = messageInput.value.trim(); if (!content) return;
             setLoading(true);
             try { 
-                const recipient_id = currentRecipient ? currentRecipient.id : null; 
-                const message = await sendMessage(content, recipient_id); 
+                const recipient_id = currentRecipient ? currentRecipient.id : null;
+                const group_id = currentGroup ? currentGroup.id : null;
+                const message = await sendMessage(content, recipient_id, group_id); 
                 messageInput.value = ''; 
                 updateCharCount(); 
                 addMessage(message, true, true); // Animate sent messages 
@@ -1407,6 +1693,94 @@
                 mentionAutocomplete.hide();
             }
         });
+
+        // File upload functionality
+        const fileBtn = document.getElementById('file-btn');
+        const fileInput = document.getElementById('file-input');
+        
+        fileBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                // Validate file size (8MB limit)
+                if (file.size > 8 * 1024 * 1024) {
+                    showError(`File ${file.name} is too large. Maximum size is 8MB.`);
+                    return;
+                }
+                
+                // Validate file extension
+                const ext = file.name.split('.').pop().toLowerCase();
+                const blockedExts = ['exe', 'msi', 'bat', 'cmd', 'com', 'pif', 'scr', 'vbs', 'js', 'jar', 'app', 'deb', 'dmg', 'pkg', 'rpm', 'sh', 'ps1', 'psm1', 'psd1', 'ps1xml', 'psc1', 'pssc', 'cdxml', 'xaml'];
+                
+                if (blockedExts.includes(ext)) {
+                    showError(`File type .${ext} is not allowed.`);
+                    return;
+                }
+                
+                sendFileMessage(file);
+            });
+            
+            // Reset input
+            fileInput.value = '';
+        });
+        
+        // Drag and drop functionality
+        const messageInputEl = document.getElementById('message-input');
+        const messageFormEl = document.getElementById('message-form');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            messageFormEl.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            messageFormEl.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            messageFormEl.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight(e) {
+            messageFormEl.classList.add('drag-over');
+        }
+        
+        function unhighlight(e) {
+            messageFormEl.classList.remove('drag-over');
+        }
+        
+        messageFormEl.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            Array.from(files).forEach(file => {
+                // Validate file size (8MB limit)
+                if (file.size > 8 * 1024 * 1024) {
+                    showError(`File ${file.name} is too large. Maximum size is 8MB.`);
+                    return;
+                }
+                
+                // Validate file extension
+                const ext = file.name.split('.').pop().toLowerCase();
+                const blockedExts = ['exe', 'msi', 'bat', 'cmd', 'com', 'pif', 'scr', 'vbs', 'js', 'jar', 'app', 'deb', 'dmg', 'pkg', 'rpm', 'sh', 'ps1', 'psm1', 'psd1', 'ps1xml', 'psc1', 'pssc', 'cdxml', 'xaml'];
+                
+                if (blockedExts.includes(ext)) {
+                    showError(`File type .${ext} is not allowed.`);
+                    return;
+                }
+                
+                sendFileMessage(file);
+            });
+        }
 
         function populateUserSelect() {
             const prev = userSelect.value || '';
@@ -1588,7 +1962,8 @@
                 setLoading(true);
                 try {
                     const recipient_id = currentRecipient ? currentRecipient.id : null;
-                    const message = await sendMessage(gifUrl, recipient_id);
+                    const group_id = currentGroup ? currentGroup.id : null;
+                    const message = await sendMessage(gifUrl, recipient_id, group_id);
                     addMessage(message, true, true); // Animate GIF messages
                     toggleGifBrowser(); // Close the browser after sending
                 } catch (err) {
@@ -1888,6 +2263,49 @@
         if (profilePicBtn) profilePicBtn.addEventListener('click', showProfilePicModal);
         if (profilePicModalClose) profilePicModalClose.addEventListener('click', hideProfilePicModal);
         if (removeProfilePicBtn) removeProfilePicBtn.addEventListener('click', removeProfilePicture);
+
+        // Group chat event listeners
+        const createGroupBtn = document.getElementById('create-group-btn');
+        const createGroupModalClose = document.getElementById('create-group-modal-close');
+        const createGroupSubmitBtn = document.getElementById('create-group-btn');
+        const cancelGroupBtn = document.getElementById('cancel-group-btn');
+        
+        if (createGroupBtn) createGroupBtn.addEventListener('click', showCreateGroupModal);
+        if (createGroupModalClose) createGroupModalClose.addEventListener('click', hideCreateGroupModal);
+        if (cancelGroupBtn) cancelGroupBtn.addEventListener('click', hideCreateGroupModal);
+        
+        if (createGroupSubmitBtn) {
+            createGroupSubmitBtn.addEventListener('click', async () => {
+                const name = document.getElementById('group-name-input').value.trim();
+                const msgEl = document.getElementById('create-group-msg');
+                
+                if (!name) {
+                    msgEl.textContent = 'Please enter a group name';
+                    msgEl.className = 'text-sm text-center text-red-400';
+                    return;
+                }
+                
+                // Get selected members
+                const checkboxes = document.querySelectorAll('#group-members-list input[type="checkbox"]:checked');
+                const memberIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+                
+                try {
+                    const group = await createGroupChat(name, memberIds);
+                    msgEl.textContent = 'Group created successfully!';
+                    msgEl.className = 'text-sm text-center text-green-400';
+                    
+                    // Reload user groups
+                    await loadUserGroups();
+                    
+                    setTimeout(() => {
+                        hideCreateGroupModal();
+                    }, 1500);
+                } catch (err) {
+                    msgEl.textContent = err.message || 'Failed to create group';
+                    msgEl.className = 'text-sm text-center text-red-400';
+                }
+            });
+        }
 
         if (profilePicSearch) {
             let searchTimeout = null;
