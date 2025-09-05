@@ -546,6 +546,7 @@
         // Chat navigation state
         let currentChatMode = 'global'; // 'global', 'dm', 'group'
         let dmHistory = []; // Track DM conversations
+        let managingGroup = null; // Track which group is being managed
         
         // Load DM history from localStorage
         function loadDMHistory() {
@@ -967,6 +968,8 @@
         }
 
         function showGroupManagementModal(group) {
+            managingGroup = group; // Store the group being managed
+            
             const modal = document.getElementById('group-management-modal');
             const title = document.getElementById('group-management-title');
             const groupNameInput = document.getElementById('group-name-input');
@@ -986,15 +989,28 @@
 
         function hideGroupManagementModal() {
             document.getElementById('group-management-modal').classList.add('hidden');
+            managingGroup = null; // Clear the managing group
         }
 
         function renderGroupMembersList(group) {
             const membersList = document.getElementById('group-members-list');
             membersList.innerHTML = '';
             
+            console.log('Rendering members for group:', group);
+            console.log('Group members:', group.members);
+            console.log('Available users:', usersList);
+            
+            if (!group.members || group.members.length === 0) {
+                membersList.innerHTML = '<div class="text-gray-400 text-sm text-center py-2">No members found</div>';
+                return;
+            }
+            
             group.members.forEach(memberId => {
                 const user = usersList.find(u => u.id === memberId);
-                if (!user) return;
+                if (!user) {
+                    console.log('User not found for member ID:', memberId);
+                    return;
+                }
                 
                 const memberItem = document.createElement('div');
                 memberItem.className = 'flex items-center justify-between p-2 bg-dark-700 rounded';
@@ -1033,8 +1049,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        new_name: newName,
-                        requesting_user_id: currentUser.id 
+                        name: newName,
+                        user_id: currentUser.id 
                     })
                 });
                 
@@ -1127,7 +1143,7 @@
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        requesting_user_id: currentUser.id 
+                        user_id: currentUser.id 
                     })
                 });
                 
@@ -2919,16 +2935,13 @@
         // Group management event listeners
         if (groupManagementModalClose) groupManagementModalClose.addEventListener('click', hideGroupManagementModal);
         if (groupRenameBtn) groupRenameBtn.addEventListener('click', () => {
-            const group = currentGroup;
-            if (group) updateGroupName(group.id);
+            if (managingGroup) updateGroupName(managingGroup.id);
         });
         if (groupAddMemberBtn) groupAddMemberBtn.addEventListener('click', () => {
-            const group = currentGroup;
-            if (group) addMemberToGroup(group.id);
+            if (managingGroup) addMemberToGroup(managingGroup.id);
         });
         if (groupDeleteBtn) groupDeleteBtn.addEventListener('click', () => {
-            const group = currentGroup;
-            if (group) deleteGroup(group.id);
+            if (managingGroup) deleteGroup(managingGroup.id);
         });
         
         if (createGroupSubmitBtn) {
