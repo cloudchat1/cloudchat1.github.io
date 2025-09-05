@@ -531,14 +531,47 @@
         function getFileIcon(filename) {
             const ext = filename.split('.').pop().toLowerCase();
             const iconMap = {
-                'pdf': '📄', 'doc': '📄', 'docx': '📄', 'txt': '📄',
-                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'webp': '🖼️', 'svg': '🖼️',
-                'mp4': '🎥', 'webm': '🎥', 'avi': '🎥',
-                'mp3': '🎵', 'wav': '🎵', 'ogg': '🎵',
-                'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦', 'gz': '📦',
-                'xls': '📊', 'xlsx': '📊', 'ppt': '📊', 'pptx': '📊'
+                'pdf': '📄', 'doc': '📄', 'docx': '📄', 'txt': '📄', 'rtf': '📄',
+                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'webp': '🖼️', 'svg': '🖼️', 'bmp': '🖼️', 'ico': '🖼️',
+                'mp4': '🎥', 'webm': '🎥', 'avi': '🎥', 'mov': '🎥', 'mkv': '🎥', 'flv': '🎥',
+                'mp3': '🎵', 'wav': '🎵', 'ogg': '🎵', 'flac': '🎵', 'aac': '🎵', 'm4a': '🎵',
+                'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦', 'gz': '📦', 'bz2': '📦',
+                'xls': '📊', 'xlsx': '📊', 'ppt': '📊', 'pptx': '📊', 'csv': '📊',
+                'html': '🌐', 'htm': '🌐', 'css': '🎨', 'js': '⚡', 'json': '📋', 'xml': '📋',
+                'py': '🐍', 'java': '☕', 'cpp': '⚙️', 'c': '⚙️', 'cs': '🔷', 'php': '🐘',
+                'exe': '⚙️', 'msi': '⚙️', 'dmg': '💿', 'pkg': '📦', 'deb': '📦', 'rpm': '📦'
             };
             return iconMap[ext] || '📎';
+        }
+
+        function getFileTypeLabel(filename, mimeType) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const typeMap = {
+                'pdf': 'PDF Document',
+                'doc': 'Word Document', 'docx': 'Word Document',
+                'txt': 'Text File', 'rtf': 'Rich Text',
+                'jpg': 'JPEG Image', 'jpeg': 'JPEG Image', 'png': 'PNG Image', 
+                'gif': 'GIF Image', 'webp': 'WebP Image', 'svg': 'SVG Image',
+                'mp4': 'MP4 Video', 'webm': 'WebM Video', 'avi': 'AVI Video',
+                'mp3': 'MP3 Audio', 'wav': 'WAV Audio', 'ogg': 'OGG Audio',
+                'zip': 'ZIP Archive', 'rar': 'RAR Archive', '7z': '7-Zip Archive',
+                'xls': 'Excel Spreadsheet', 'xlsx': 'Excel Spreadsheet',
+                'ppt': 'PowerPoint Presentation', 'pptx': 'PowerPoint Presentation'
+            };
+            
+            if (typeMap[ext]) {
+                return typeMap[ext];
+            }
+            
+            // Fallback to MIME type
+            if (mimeType) {
+                const mimeParts = mimeType.split('/');
+                if (mimeParts.length === 2) {
+                    return mimeParts[1].toUpperCase() + ' ' + mimeParts[0].charAt(0).toUpperCase() + mimeParts[0].slice(1);
+                }
+            }
+            
+            return ext.toUpperCase() + ' File';
         }
 
         async function uploadFile(file) {
@@ -1375,22 +1408,66 @@
                 const file = message.file_attachment;
                 const fileIcon = getFileIcon(file.filename);
                 const fileSize = formatFileSize(file.size);
-
-                messageContent += `
-                    <div class="file-attachment">
-                        <div class="file-info">
-                            <div class="file-icon">${fileIcon}</div>
-                            <div class="file-details">
-                                <div class="file-name">
-                                    <a href="${API_BASE_URL.replace("api", "") + file.url}" target="_blank" rel="noopener noreferrer">
-                                        ${escapeHtml(file.filename)}
-                                    </a>
+                const fileUrl = `${API_BASE_URL.replace("api", "") + file.url}`;
+                
+                // Check if it's an image
+                const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(file.filename);
+                
+                // Determine file type category
+                const ext = file.filename.split('.').pop().toLowerCase();
+                let fileTypeCategory = 'document';
+                if (isImage) fileTypeCategory = 'image';
+                else if (['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv'].includes(ext)) fileTypeCategory = 'video';
+                else if (['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(ext)) fileTypeCategory = 'audio';
+                else if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) fileTypeCategory = 'archive';
+                
+                if (isImage) {
+                    // Discord-style image embed
+                    messageContent += `
+                        <div class="file-attachment image-attachment" data-file-type="${fileTypeCategory}">
+                            <div class="image-preview">
+                                <img src="${fileUrl}" alt="${escapeHtml(file.filename)}" loading="lazy" onclick="window.open('${fileUrl}', '_blank')">
+                            </div>
+                            <div class="file-info">
+                                <div class="file-icon">${fileIcon}</div>
+                                <div class="file-details">
+                                    <div class="file-name">
+                                        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer">
+                                            ${escapeHtml(file.filename)}
+                                        </a>
+                                    </div>
+                                    <div class="file-size">${fileSize}</div>
                                 </div>
-                                <div class="file-size">${fileSize}</div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    // Discord-style file embed for non-images
+                    const fileTypeLabel = getFileTypeLabel(file.filename, file.type);
+                    messageContent += `
+                        <div class="file-attachment document-attachment" data-file-type="${fileTypeCategory}">
+                            <div class="file-info">
+                                <div class="file-icon">${fileIcon}</div>
+                                <div class="file-details">
+                                    <div class="file-name">
+                                        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer">
+                                            ${escapeHtml(file.filename)}
+                                        </a>
+                                    </div>
+                                    <div class="file-meta">
+                                        <span class="file-size">${fileSize}</span>
+                                        <span class="file-type">${fileTypeLabel}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="download-btn" title="Download ${escapeHtml(file.filename)}">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
             
