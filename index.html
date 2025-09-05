@@ -743,6 +743,10 @@
                 }
                 
                 userGroups = data.groups || [];
+                console.log('Loaded user groups:', userGroups);
+                userGroups.forEach(group => {
+                    console.log('Group:', group.name, 'Members:', group.members, 'Owner:', group.owner_id);
+                });
                 return userGroups;
             } catch (err) {
                 console.error('Failed to load user groups:', err);
@@ -968,6 +972,7 @@
         }
 
         async function showGroupManagementModal(group) {
+            console.log('showGroupManagementModal called with group:', group);
             managingGroup = group; // Store the group being managed
             
             const modal = document.getElementById('group-management-modal');
@@ -976,6 +981,15 @@
             const addMemberInput = document.getElementById('add-member-input');
             const membersList = document.getElementById('group-members-list');
             const msg = document.getElementById('group-management-msg');
+            
+            console.log('Modal elements found:', {
+                modal: !!modal,
+                title: !!title,
+                groupNameInput: !!groupNameInput,
+                addMemberInput: !!addMemberInput,
+                membersList: !!membersList,
+                msg: !!msg
+            });
             
             title.textContent = `Manage: ${group.name}`;
             groupNameInput.value = group.name;
@@ -989,6 +1003,7 @@
             }
             
             // Render members list
+            console.log('About to call renderGroupMembersList with group:', group);
             renderGroupMembersList(group);
             
             modal.classList.remove('hidden');
@@ -1000,13 +1015,24 @@
         }
 
         function renderGroupMembersList(group) {
+            console.log('renderGroupMembersList called with group:', group);
             const membersList = document.getElementById('group-members-list');
+            console.log('membersList element:', membersList);
+            
+            if (!membersList) {
+                console.error('group-members-list element not found!');
+                return;
+            }
+            
             membersList.innerHTML = '';
             
             console.log('Rendering members for group:', group);
             console.log('Group members:', group.members);
             console.log('Available users:', usersList);
             console.log('UsersList length:', usersList.length);
+            
+            // Always show a test message first
+            membersList.innerHTML = '<div class="text-blue-400 text-sm text-center py-2">Function is working - loading members...</div>';
             
             if (!group.members || group.members.length === 0) {
                 membersList.innerHTML = '<div class="text-gray-400 text-sm text-center py-2">No members found</div>';
@@ -1237,10 +1263,14 @@
                 // Add manage button event listener
                 const manageBtn = groupItem.querySelector('.group-manage-btn');
                 if (manageBtn) {
+                    console.log('Adding manage button listener for group:', group);
                     manageBtn.addEventListener('click', (e) => {
+                        console.log('Manage button clicked for group:', group);
                         e.stopPropagation();
                         showGroupManagementModal(group);
                     });
+                } else {
+                    console.log('No manage button found for group:', group);
                 }
                 
                 groupsList.appendChild(groupItem);
