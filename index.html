@@ -967,7 +967,7 @@
             hideUsersModal();
         }
 
-        function showGroupManagementModal(group) {
+        async function showGroupManagementModal(group) {
             managingGroup = group; // Store the group being managed
             
             const modal = document.getElementById('group-management-modal');
@@ -980,6 +980,13 @@
             title.textContent = `Manage: ${group.name}`;
             groupNameInput.value = group.name;
             msg.textContent = '';
+            
+            // Ensure users are loaded before rendering members
+            if (usersList.length === 0) {
+                console.log('Users list is empty, loading users...');
+                await loadUsers();
+                console.log('Users loaded:', usersList.length, 'users');
+            }
             
             // Render members list
             renderGroupMembersList(group);
@@ -999,18 +1006,36 @@
             console.log('Rendering members for group:', group);
             console.log('Group members:', group.members);
             console.log('Available users:', usersList);
+            console.log('UsersList length:', usersList.length);
             
             if (!group.members || group.members.length === 0) {
                 membersList.innerHTML = '<div class="text-gray-400 text-sm text-center py-2">No members found</div>';
                 return;
             }
             
+            let membersRendered = 0;
             group.members.forEach(memberId => {
-                const user = usersList.find(u => u.id === memberId);
+                console.log('Looking for user with ID:', memberId, 'Type:', typeof memberId);
+                // Try both string and number comparison
+                const user = usersList.find(u => u.id === memberId || u.id === parseInt(memberId) || u.id === String(memberId));
                 if (!user) {
                     console.log('User not found for member ID:', memberId);
+                    // Show a placeholder for missing users
+                    const memberItem = document.createElement('div');
+                    memberItem.className = 'flex items-center justify-between p-2 bg-dark-700 rounded';
+                    memberItem.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+                                <span class="text-white text-xs font-semibold">?</span>
+                            </div>
+                            <span class="text-gray-400 text-sm">User ID: ${memberId}</span>
+                        </div>
+                    `;
+                    membersList.appendChild(memberItem);
                     return;
                 }
+                
+                membersRendered++;
                 
                 const memberItem = document.createElement('div');
                 memberItem.className = 'flex items-center justify-between p-2 bg-dark-700 rounded';
@@ -1038,6 +1063,12 @@
                 
                 membersList.appendChild(memberItem);
             });
+            
+            console.log(`Rendered ${membersRendered} members out of ${group.members.length} total members`);
+            
+            if (membersRendered === 0) {
+                membersList.innerHTML = '<div class="text-gray-400 text-sm text-center py-2">No valid members found</div>';
+            }
         }
 
         async function updateGroupName(groupId) {
