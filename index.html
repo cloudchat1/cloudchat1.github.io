@@ -352,7 +352,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="text-sm font-medium text-white mb-2 block">Group Name</label>
-                    <input id="group-name-input" type="text" placeholder="Enter group name..." maxlength="50" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400">
+                    <input id="create-group-name-input" type="text" placeholder="Enter group name..." maxlength="50" class="w-full p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400">
                 </div>
 
                 <div>
@@ -363,7 +363,7 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button id="create-group-btn" class="flex-1 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Create Group</button>
+                    <button id="create-group-submit-btn" class="flex-1 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Create Group</button>
                     <button id="cancel-group-btn" class="flex-1 px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancel</button>
                 </div>
 
@@ -406,7 +406,7 @@
                 <div>
                     <label class="text-sm font-medium text-white mb-2 block">Group Name</label>
                     <div class="flex gap-2">
-                        <input id="group-rename-input" type="text" class="flex-1 p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400">
+                        <input id="group-name-input" type="text" class="flex-1 p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400">
                         <button id="group-rename-btn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Rename</button>
                     </div>
                 </div>
@@ -414,16 +414,14 @@
                 <div>
                     <label class="text-sm font-medium text-white mb-2 block">Add Member</label>
                     <div class="flex gap-2">
-                        <select id="group-add-member-select" class="flex-1 p-3 rounded-lg bg-dark-700 border border-dark-500 text-white">
-                            <option value="">Select user to add...</option>
-                        </select>
+                        <input id="add-member-input" type="text" placeholder="Enter username..." class="flex-1 p-3 rounded-lg bg-dark-700 border border-dark-500 text-white placeholder-gray-400">
                         <button id="group-add-member-btn" class="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white">Add</button>
                     </div>
                 </div>
 
                 <div>
                     <label class="text-sm font-medium text-white mb-2 block">Members</label>
-                    <div id="group-members-management" class="max-h-40 overflow-y-auto border border-dark-500 rounded-lg p-2 bg-dark-700">
+                    <div id="group-members-list" class="max-h-40 overflow-y-auto border border-dark-500 rounded-lg p-2 bg-dark-700 space-y-2">
                         <!-- Members list will be populated here -->
                     </div>
                 </div>
@@ -789,7 +787,7 @@
             modal.classList.remove('flex');
             
             // Clear form
-            document.getElementById('group-name-input').value = '';
+            document.getElementById('create-group-name-input').value = '';
             document.getElementById('create-group-msg').textContent = '';
         }
 
@@ -2905,7 +2903,7 @@
         // Group chat event listeners
         const createGroupBtn = document.getElementById('create-group-btn');
         const createGroupModalClose = document.getElementById('create-group-modal-close');
-        const createGroupSubmitBtn = document.getElementById('create-group-btn');
+        const createGroupSubmitBtn = document.getElementById('create-group-submit-btn');
         
         // Group management event listeners
         const groupManagementModalClose = document.getElementById('group-management-modal-close');
@@ -2935,7 +2933,7 @@
         
         if (createGroupSubmitBtn) {
             createGroupSubmitBtn.addEventListener('click', async () => {
-                const name = document.getElementById('group-name-input').value.trim();
+                const name = document.getElementById('create-group-name-input').value.trim();
                 const msgEl = document.getElementById('create-group-msg');
                 
                 if (!name) {
