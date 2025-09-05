@@ -548,6 +548,28 @@
         // Chat navigation state
         let currentChatMode = 'global'; // 'global', 'dm', 'group'
         let dmHistory = []; // Track DM conversations
+        
+        // Load DM history from localStorage
+        function loadDMHistory() {
+            try {
+                const saved = localStorage.getItem('dmHistory');
+                if (saved) {
+                    dmHistory = JSON.parse(saved);
+                }
+            } catch (error) {
+                console.error('Failed to load DM history:', error);
+                dmHistory = [];
+            }
+        }
+        
+        // Save DM history to localStorage
+        function saveDMHistory() {
+            try {
+                localStorage.setItem('dmHistory', JSON.stringify(dmHistory));
+            } catch (error) {
+                console.error('Failed to save DM history:', error);
+            }
+        }
 
         function showError(message) {
             authError.textContent = message;
@@ -780,11 +802,14 @@
             // Update navigation buttons
             document.getElementById('global-chat-btn').classList.remove('bg-dark-700', 'text-gray-300');
             document.getElementById('global-chat-btn').classList.add('bg-blue-600', 'text-white');
+            document.getElementById('dms-btn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('dms-btn').classList.add('bg-dark-700', 'text-gray-300');
             document.getElementById('groups-btn').classList.remove('bg-blue-600', 'text-white');
             document.getElementById('groups-btn').classList.add('bg-dark-700', 'text-gray-300');
             
-            // Hide groups dropdown
+            // Hide dropdowns
             document.getElementById('groups-dropdown').classList.add('hidden');
+            document.getElementById('dms-dropdown').classList.add('hidden');
             
             // Update UI
             document.getElementById('user-display').textContent = currentUser.username;
@@ -935,6 +960,7 @@
             // Add to DM history if not already there
             if (!dmHistory.find(dm => dm.id === userId)) {
                 dmHistory.push(user);
+                saveDMHistory(); // Save to localStorage
             }
             
             // Start DM conversation
@@ -2145,7 +2171,8 @@
                     renderGroupsList();
                 });
                 
-                // Initialize DMs list
+                // Load DM history and initialize DMs list
+                loadDMHistory();
                 renderDMsList();
                 
                 // Set initial chat mode
