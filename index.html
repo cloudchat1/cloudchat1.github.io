@@ -132,11 +132,6 @@
                     </div>
                 </div>
                 
-                <div>
-                    <select id="user-select" class="bg-dark-700 border border-dark-500 text-gray-200 rounded px-3 py-1">
-                        <option value="">All (global)</option>
-                    </select>
-                </div>
             </div>
 
             <div class="flex items-center space-x-3">
@@ -144,6 +139,7 @@
 
                 <div class="flex items-center space-x-2">
                     <button id="create-group-btn" title="Create Group Chat" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700 hidden"><i class="fas fa-users mr-1"></i>Create Group</button>
+                    <button id="users-btn" title="View All Users" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fas fa-users mr-1"></i>Users</button>
                     <button id="profile-pic-btn" title="Set Profile Picture" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700 hidden"><i class="fas fa-user-circle mr-1"></i>Avatar</button>
                     <button id="pin-btn" title="Set / Change PIN" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fa-solid fa-keyboard mr-2"></i>PIN</button>
                     <button id="lock-now-btn" title="Lock now" class="px-3 py-1 rounded border border-dark-600 text-sm text-gray-300 hover:bg-dark-700"><i class="fas fa-lock mr-1"></i>Lock</button>
@@ -376,6 +372,25 @@
         </div>
     </div>
 
+    <!-- USERS MODAL -->
+    <div id="users-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md rounded-2xl p-6 shadow-2xl border border-dark-600 bg-dark-800" role="dialog" aria-modal="true">
+            <div class="flex items-start justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">All Users</h3>
+                <button id="users-modal-close" class="text-gray-400 hover:text-white" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                <div id="users-list" class="space-y-2">
+                    <!-- Users will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- GROUP MANAGEMENT MODAL -->
     <div id="group-management-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
@@ -488,8 +503,11 @@
         const sendLoading = document.getElementById('send-loading');
         const charCount = document.getElementById('char-count');
         const emptyState = document.getElementById('empty-state');
-        const userSelect = document.getElementById('user-select');
         const clearRecipientBtn = document.getElementById('clear-recipient-btn');
+        const usersBtn = document.getElementById('users-btn');
+        const usersModal = document.getElementById('users-modal');
+        const usersModalClose = document.getElementById('users-modal-close');
+        const usersListEl = document.getElementById('users-list');
         const faviconEl = document.getElementById('favicon');
         const moderationModal = document.getElementById('moderation-modal');
         const moderationReason = document.getElementById('moderation-reason');
@@ -859,6 +877,252 @@
             
             // Update DMs list
             renderDMsList();
+        }
+
+        function showUsersModal() {
+            usersModal.classList.remove('hidden');
+            renderUsersList();
+        }
+
+        function hideUsersModal() {
+            usersModal.classList.add('hidden');
+        }
+
+        function renderUsersList() {
+            usersListEl.innerHTML = '';
+            
+            if (usersList.length === 0) {
+                usersListEl.innerHTML = '<div class="text-gray-400 text-sm text-center py-4">No users found</div>';
+                return;
+            }
+            
+            usersList.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'flex items-center justify-between p-3 hover:bg-dark-700 cursor-pointer rounded border border-dark-600';
+                
+                const statusColor = {
+                    'online': '#43b581',
+                    'away': '#faa61a', 
+                    'busy': '#f04747',
+                    'offline': '#747f8d'
+                }[user.status] || '#747f8d';
+                
+                userItem.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-semibold">${user.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div class="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-dark-800" style="background-color: ${statusColor}"></div>
+                        </div>
+                        <div>
+                            <div class="text-white font-medium">${escapeHtml(user.username)}</div>
+                            <div class="text-gray-400 text-sm capitalize">${user.status}</div>
+                        </div>
+                    </div>
+                    <button class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded" onclick="startDM(${user.id}, '${escapeHtml(user.username)}')">
+                        DM
+                    </button>
+                `;
+                
+                usersListEl.appendChild(userItem);
+            });
+        }
+
+        function startDM(userId, username) {
+            const user = { id: userId, username: username };
+            
+            // Add to DM history if not already there
+            if (!dmHistory.find(dm => dm.id === userId)) {
+                dmHistory.push(user);
+            }
+            
+            // Start DM conversation
+            selectDM(user);
+            hideUsersModal();
+        }
+
+        function showGroupManagementModal(group) {
+            const modal = document.getElementById('group-management-modal');
+            const title = document.getElementById('group-management-title');
+            const groupNameInput = document.getElementById('group-name-input');
+            const addMemberInput = document.getElementById('add-member-input');
+            const membersList = document.getElementById('group-members-list');
+            const msg = document.getElementById('group-management-msg');
+            
+            title.textContent = `Manage: ${group.name}`;
+            groupNameInput.value = group.name;
+            msg.textContent = '';
+            
+            // Render members list
+            renderGroupMembersList(group);
+            
+            modal.classList.remove('hidden');
+        }
+
+        function hideGroupManagementModal() {
+            document.getElementById('group-management-modal').classList.add('hidden');
+        }
+
+        function renderGroupMembersList(group) {
+            const membersList = document.getElementById('group-members-list');
+            membersList.innerHTML = '';
+            
+            group.members.forEach(memberId => {
+                const user = usersList.find(u => u.id === memberId);
+                if (!user) return;
+                
+                const memberItem = document.createElement('div');
+                memberItem.className = 'flex items-center justify-between p-2 bg-dark-700 rounded';
+                
+                const statusColor = {
+                    'online': '#43b581',
+                    'away': '#faa61a', 
+                    'busy': '#f04747',
+                    'offline': '#747f8d'
+                }[user.status] || '#747f8d';
+                
+                memberItem.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="relative">
+                            <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                <span class="text-white text-xs font-semibold">${user.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-dark-800" style="background-color: ${statusColor}"></div>
+                        </div>
+                        <span class="text-white text-sm">${escapeHtml(user.username)}</span>
+                        ${memberId === group.owner_id ? '<span class="text-yellow-400 text-xs">(Owner)</span>' : ''}
+                    </div>
+                    ${memberId !== group.owner_id ? `<button class="text-red-400 hover:text-red-300 text-xs" onclick="removeMemberFromGroup(${group.id}, ${memberId})">Remove</button>` : ''}
+                `;
+                
+                membersList.appendChild(memberItem);
+            });
+        }
+
+        async function updateGroupName(groupId) {
+            const newName = document.getElementById('group-name-input').value.trim();
+            if (!newName) return;
+            
+            try {
+                const response = await fetch(`/api/groups/${groupId}/rename`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        new_name: newName,
+                        requesting_user_id: currentUser.id 
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('group-management-msg').textContent = 'Group renamed successfully!';
+                    // Update the group in the list
+                    const group = userGroups.find(g => g.id === groupId);
+                    if (group) {
+                        group.name = newName;
+                        renderGroupsList();
+                    }
+                } else {
+                    document.getElementById('group-management-msg').textContent = 'Failed to rename group.';
+                }
+            } catch (error) {
+                document.getElementById('group-management-msg').textContent = 'Error renaming group.';
+            }
+        }
+
+        async function addMemberToGroup(groupId) {
+            const username = document.getElementById('add-member-input').value.trim();
+            if (!username) return;
+            
+            const user = usersList.find(u => u.username.toLowerCase() === username.toLowerCase());
+            if (!user) {
+                document.getElementById('group-management-msg').textContent = 'User not found.';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/groups/${groupId}/members`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        user_id: user.id,
+                        requesting_user_id: currentUser.id 
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('add-member-input').value = '';
+                    document.getElementById('group-management-msg').textContent = 'Member added successfully!';
+                    // Update the group in the list
+                    const group = userGroups.find(g => g.id === groupId);
+                    if (group && !group.members.includes(user.id)) {
+                        group.members.push(user.id);
+                        renderGroupMembersList(group);
+                    }
+                } else {
+                    document.getElementById('group-management-msg').textContent = 'Failed to add member.';
+                }
+            } catch (error) {
+                document.getElementById('group-management-msg').textContent = 'Error adding member.';
+            }
+        }
+
+        async function removeMemberFromGroup(groupId, userId) {
+            try {
+                const response = await fetch(`/api/groups/${groupId}/members/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        requesting_user_id: currentUser.id 
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('group-management-msg').textContent = 'Member removed successfully!';
+                    // Update the group in the list
+                    const group = userGroups.find(g => g.id === groupId);
+                    if (group) {
+                        group.members = group.members.filter(id => id !== userId);
+                        renderGroupMembersList(group);
+                    }
+                } else {
+                    document.getElementById('group-management-msg').textContent = 'Failed to remove member.';
+                }
+            } catch (error) {
+                document.getElementById('group-management-msg').textContent = 'Error removing member.';
+            }
+        }
+
+        async function deleteGroup(groupId) {
+            if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/groups/${groupId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        requesting_user_id: currentUser.id 
+                    })
+                });
+                
+                if (response.ok) {
+                    hideGroupManagementModal();
+                    // Remove from user groups list
+                    userGroups = userGroups.filter(g => g.id !== groupId);
+                    renderGroupsList();
+                    
+                    // If we were in this group, switch to global
+                    if (currentGroup && currentGroup.id === groupId) {
+                        switchToGlobal();
+                    }
+                } else {
+                    document.getElementById('group-management-msg').textContent = 'Failed to delete group.';
+                }
+            } catch (error) {
+                document.getElementById('group-management-msg').textContent = 'Error deleting group.';
+            }
         }
 
         function renderGroupsList() {
@@ -1589,7 +1853,7 @@
             return data.messages || []; 
         }
         async function loadUsers() {
-            try { const data = await apiRequest('/users'); usersList = data.users || []; populateUserSelect(); } catch (err) { console.error('Failed to load users:', err); }
+            try { const data = await apiRequest('/users'); usersList = data.users || []; } catch (err) { console.error('Failed to load users:', err); }
         }
         async function deleteMessageRequest(messageId) {
             try {
@@ -2132,67 +2396,13 @@
             });
         }
 
-        function populateUserSelect() {
-            const prev = userSelect.value || '';
-            userSelect.innerHTML = '';
-            const allOption = document.createElement('option'); 
-            allOption.value = ''; 
-            allOption.textContent = 'All (global)'; 
-            userSelect.appendChild(allOption);
-            
-            usersList.forEach(u => { 
-                const opt = document.createElement('option'); 
-                opt.value = u.id; 
-                
-                // Add status indicator to username
-                const statusEmoji = {
-                    'online': '🟢',
-                    'away': '🟡',
-                    'busy': '🔴',
-                    'offline': '⚫'
-                };
-                const emoji = statusEmoji[u.status] || '⚫';
-                opt.textContent = `${emoji} ${u.username}`;
-                
-                userSelect.appendChild(opt); 
-            });
-            
-            if (prev) { 
-                const found = Array.from(userSelect.options).some(o => o.value === prev); 
-                if (found) userSelect.value = prev; 
-            }
-        }
 
-        userSelect.addEventListener('change', () => {
-            const val = userSelect.value;
-            if (!val) { 
-                currentRecipient = null; 
-                clearRecipientBtn.classList.add('hidden'); 
-            } else { 
-                const u = usersList.find(x => String(x.id) === String(val)); 
-                if (u) { 
-                    currentRecipient = { id: u.id, username: u.username }; 
-                    clearRecipientBtn.classList.remove('hidden');
-                    
-                    // Add to DM history if not already there
-                    if (!dmHistory.find(dm => dm.id === u.id)) {
-                        dmHistory.push({ id: u.id, username: u.username });
-                        renderDMsList();
-                    }
-                    
-                    // Switch to DM mode
-                    selectDM(currentRecipient);
-                } else { 
-                    currentRecipient = null; 
-                    clearRecipientBtn.classList.add('hidden'); 
-                } 
-            }
-            loadMessages();
-        });
+        // Users modal event listeners
+        if (usersBtn) usersBtn.addEventListener('click', showUsersModal);
+        if (usersModalClose) usersModalClose.addEventListener('click', hideUsersModal);
 
         clearRecipientBtn.addEventListener('click', () => { 
             currentRecipient = null; 
-            userSelect.value = ''; 
             clearRecipientBtn.classList.add('hidden'); 
             switchToGlobal();
         });
@@ -2669,11 +2879,32 @@
         const createGroupBtn = document.getElementById('create-group-btn');
         const createGroupModalClose = document.getElementById('create-group-modal-close');
         const createGroupSubmitBtn = document.getElementById('create-group-btn');
+        
+        // Group management event listeners
+        const groupManagementModalClose = document.getElementById('group-management-modal-close');
+        const groupRenameBtn = document.getElementById('group-rename-btn');
+        const groupAddMemberBtn = document.getElementById('group-add-member-btn');
+        const groupDeleteBtn = document.getElementById('group-delete-btn');
         const cancelGroupBtn = document.getElementById('cancel-group-btn');
         
         if (createGroupBtn) createGroupBtn.addEventListener('click', showCreateGroupModal);
         if (createGroupModalClose) createGroupModalClose.addEventListener('click', hideCreateGroupModal);
         if (cancelGroupBtn) cancelGroupBtn.addEventListener('click', hideCreateGroupModal);
+        
+        // Group management event listeners
+        if (groupManagementModalClose) groupManagementModalClose.addEventListener('click', hideGroupManagementModal);
+        if (groupRenameBtn) groupRenameBtn.addEventListener('click', () => {
+            const group = currentGroup;
+            if (group) updateGroupName(group.id);
+        });
+        if (groupAddMemberBtn) groupAddMemberBtn.addEventListener('click', () => {
+            const group = currentGroup;
+            if (group) addMemberToGroup(group.id);
+        });
+        if (groupDeleteBtn) groupDeleteBtn.addEventListener('click', () => {
+            const group = currentGroup;
+            if (group) deleteGroup(group.id);
+        });
         
         if (createGroupSubmitBtn) {
             createGroupSubmitBtn.addEventListener('click', async () => {
