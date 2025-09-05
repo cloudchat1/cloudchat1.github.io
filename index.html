@@ -1382,7 +1382,7 @@
                             <div class="file-icon">${fileIcon}</div>
                             <div class="file-details">
                                 <div class="file-name">
-                                    <a href="${API_BASE_URL}${file.url}" target="_blank" rel="noopener noreferrer">
+                                    <a href={API_BASE_URL.replace("api", "") + file.url} target="_blank" rel="noopener noreferrer">
                                         ${escapeHtml(file.filename)}
                                     </a>
                                 </div>
