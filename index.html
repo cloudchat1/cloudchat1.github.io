@@ -1045,8 +1045,9 @@
             if (!newName) return;
             
             try {
-                const response = await fetch(`/api/groups/${groupId}/rename`, {
+                const response = await fetch(`${API_BASE_URL}/groups/${groupId}/rename`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         name: newName,
@@ -1081,8 +1082,9 @@
             }
             
             try {
-                const response = await fetch(`/api/groups/${groupId}/members`, {
+                const response = await fetch(`${API_BASE_URL}/groups/${groupId}/members`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         user_id: user.id,
@@ -1109,8 +1111,9 @@
 
         async function removeMemberFromGroup(groupId, userId) {
             try {
-                const response = await fetch(`/api/groups/${groupId}/members/${userId}`, {
+                const response = await fetch(`${API_BASE_URL}/groups/${groupId}/members/${userId}`, {
                     method: 'DELETE',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         requesting_user_id: currentUser.id 
@@ -1139,8 +1142,9 @@
             }
             
             try {
-                const response = await fetch(`/api/groups/${groupId}`, {
+                const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
                     method: 'DELETE',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         user_id: currentUser.id 
