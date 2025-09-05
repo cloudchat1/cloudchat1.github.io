@@ -544,7 +544,7 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 /* File attachment styles - Discord-like embeds */
 .file-attachment {
   display: block;
-  background: var(--dark-700);
+  background: #1a1a1a;
   border: 1px solid var(--dark-600);
   border-radius: 8px;
   margin: 8px 0;
@@ -554,12 +554,11 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 }
 
 .file-attachment:hover {
-  background: var(--dark-600);
   border-color: var(--dark-500);
 }
 
 .file-attachment a {
-  color: #5865f2;
+  color: #fff;
   text-decoration: none;
   font-weight: 500;
 }
@@ -795,6 +794,100 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
 .file-attachment[data-file-type="archive"] .file-icon {
   background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+/* Sidebar navigation styles */
+.sidebar-nav-btn {
+  transition: all 0.2s ease;
+}
+
+.sidebar-nav-btn.active {
+  background: #5865f2 !important;
+  color: #fff !important;
+}
+
+.sidebar-nav-btn:not(.active):hover {
+  background: var(--dark-600);
+  color: #fff;
+}
+
+/* Chat list items */
+.chat-list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.chat-list-item:hover {
+  background: var(--dark-600);
+}
+
+.chat-list-item.active {
+  background: rgba(88, 101, 242, 0.2);
+  border: 1px solid rgba(88, 101, 242, 0.3);
+}
+
+.chat-list-item .chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.chat-list-item .chat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-list-item .chat-name {
+  color: #fff;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-list-item .chat-meta {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.chat-list-item .chat-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.chat-list-item .chat-status.online {
+  background: #43b581;
+}
+
+.chat-list-item .chat-status.away {
+  background: #faa61a;
+}
+
+.chat-list-item .chat-status.busy {
+  background: #f04747;
+}
+
+.chat-list-item .chat-status.offline {
+  background: #747f8d;
 }
 
 /* Group chat styles */
