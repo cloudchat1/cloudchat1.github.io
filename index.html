@@ -1375,14 +1375,14 @@
                 const file = message.file_attachment;
                 const fileIcon = getFileIcon(file.filename);
                 const fileSize = formatFileSize(file.size);
-                
+
                 messageContent += `
                     <div class="file-attachment">
                         <div class="file-info">
                             <div class="file-icon">${fileIcon}</div>
                             <div class="file-details">
                                 <div class="file-name">
-                                    <a href={API_BASE_URL.replace("api", "") + file.url} target="_blank" rel="noopener noreferrer">
+                                    <a href="${API_BASE_URL.replace("api", "") + file.url}" target="_blank" rel="noopener noreferrer">
                                         ${escapeHtml(file.filename)}
                                     </a>
                                 </div>
@@ -1392,6 +1392,7 @@
                     </div>
                 `;
             }
+
             
             // Handle text content
             if (message.content && !isGifMessage) {
