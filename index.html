@@ -118,7 +118,51 @@
             </div>
         </div>
 
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex">
+            <!-- Sidebar -->
+            <div class="w-64 bg-dark-800 border-r border-dark-600 flex flex-col">
+                <!-- Chat Navigation -->
+                <div class="p-4 border-b border-dark-600">
+                    <div class="flex space-x-2">
+                        <button id="global-chat-btn" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium">
+                            Global
+                        </button>
+                        <button id="dms-btn" class="flex-1 px-3 py-2 bg-dark-700 text-gray-300 rounded text-sm font-medium hover:bg-dark-600">
+                            DMs
+                        </button>
+                        <button id="groups-btn" class="flex-1 px-3 py-2 bg-dark-700 text-gray-300 rounded text-sm font-medium hover:bg-dark-600">
+                            Groups
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Global Chat Users List -->
+                <div id="global-users-section" class="flex-1 overflow-y-auto p-4">
+                    <h3 class="text-white font-semibold mb-3">Online Users</h3>
+                    <div id="users-list" class="space-y-2">
+                        <!-- Users will be populated here -->
+                    </div>
+                </div>
+
+                <!-- DMs List -->
+                <div id="dms-section" class="flex-1 overflow-y-auto p-4 hidden">
+                    <h3 class="text-white font-semibold mb-3">Direct Messages</h3>
+                    <div id="dms-list" class="space-y-2">
+                        <!-- DMs will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Groups List -->
+                <div id="groups-section" class="flex-1 overflow-y-auto p-4 hidden">
+                    <h3 class="text-white font-semibold mb-3">Group Chats</h3>
+                    <div id="groups-list" class="space-y-2">
+                        <!-- Groups will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div class="flex-1 flex flex-col">
             <div id="messages-container" class="flex-1 overflow-y-auto bg-dark-900 p-4 space-y-3">
                 <div id="empty-state" class="text-center text-gray-400 py-8">
                     <div class="text-4xl mb-4">💬</div>
@@ -168,6 +212,7 @@
                 <div class="mt-2 text-right">
                     <span id="char-count" class="text-xs text-gray-400">0/500</span>
                 </div>
+            </div>
             </div>
         </div>
     </div>
@@ -489,6 +534,10 @@
         let currentGroup = null;
         let userGroups = [];
         let pendingFiles = [];
+        
+        // Chat navigation state
+        let currentChatMode = 'global'; // 'global', 'dm', 'group'
+        let dmHistory = []; // Track DM conversations
 
         function showError(message) {
             authError.textContent = message;
@@ -710,6 +759,117 @@
             // Clear form
             document.getElementById('group-name-input').value = '';
             document.getElementById('create-group-msg').textContent = '';
+        }
+
+        // Sidebar navigation functions
+        function switchChatMode(mode) {
+            currentChatMode = mode;
+            
+            // Update navigation buttons
+            document.getElementById('global-chat-btn').classList.remove('active');
+            document.getElementById('dms-btn').classList.remove('active');
+            document.getElementById('groups-btn').classList.remove('active');
+            
+            // Hide all sections
+            document.getElementById('global-users-section').classList.add('hidden');
+            document.getElementById('dms-section').classList.add('hidden');
+            document.getElementById('groups-section').classList.add('hidden');
+            
+            // Show active section and button
+            if (mode === 'global') {
+                document.getElementById('global-chat-btn').classList.add('active');
+                document.getElementById('global-users-section').classList.remove('hidden');
+            } else if (mode === 'dm') {
+                document.getElementById('dms-btn').classList.add('active');
+                document.getElementById('dms-section').classList.remove('hidden');
+            } else if (mode === 'group') {
+                document.getElementById('groups-btn').classList.add('active');
+                document.getElementById('groups-section').classList.remove('hidden');
+            }
+        }
+
+        function renderGroupsList() {
+            const groupsList = document.getElementById('groups-list');
+            groupsList.innerHTML = '';
+            
+            if (userGroups.length === 0) {
+                groupsList.innerHTML = '<div class="text-gray-400 text-sm text-center py-4">No groups yet</div>';
+                return;
+            }
+            
+            userGroups.forEach(group => {
+                const groupItem = document.createElement('div');
+                groupItem.className = 'chat-list-item';
+                if (currentGroup && currentGroup.id === group.id) {
+                    groupItem.classList.add('active');
+                }
+                
+                groupItem.innerHTML = `
+                    <div class="chat-avatar">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-name">${escapeHtml(group.name)}</div>
+                        <div class="chat-meta">${group.members.length} members</div>
+                    </div>
+                    <div class="chat-actions">
+                        ${group.owner_id === currentUser.id ? '<button class="group-manage-btn text-gray-400 hover:text-white" title="Manage Group"><i class="fas fa-cog"></i></button>' : ''}
+                    </div>
+                `;
+                
+                groupItem.addEventListener('click', () => {
+                    selectGroup(group);
+                });
+                
+                // Add manage button event listener
+                const manageBtn = groupItem.querySelector('.group-manage-btn');
+                if (manageBtn) {
+                    manageBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showGroupManagementModal(group);
+                    });
+                }
+                
+                groupsList.appendChild(groupItem);
+            });
+        }
+
+        function selectGroup(group) {
+            currentGroup = group;
+            currentRecipient = null;
+            currentChatMode = 'group';
+            
+            // Update UI
+            document.getElementById('user-display').textContent = `Group: ${group.name}`;
+            document.getElementById('clear-recipient-btn').classList.add('hidden');
+            
+            // Clear messages and load group messages
+            document.getElementById('messages-container').innerHTML = '';
+            loadGroupMessages(group.id);
+            
+            // Update groups list
+            renderGroupsList();
+        }
+
+        async function loadGroupMessages(groupId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/messages?group_id=${groupId}`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load group messages');
+                }
+                
+                const messages = data.messages || [];
+                renderMessages(messages);
+                
+            } catch (err) {
+                console.error('Failed to load group messages:', err);
+                showError('Failed to load group messages');
+            }
         }
 
         // Mention autocomplete functionality
@@ -1323,10 +1483,31 @@
             }
         }
         async function fetchMessages() {
-            const data = await apiRequest(`/messages?last_id=${lastMessageId}`);
+            let url = `/messages?last_id=${lastMessageId}`;
+            
+            // Add query parameters based on current chat mode
+            if (currentChatMode === 'dm' && currentRecipient) {
+                url += `&recipient_id=${currentRecipient.id}`;
+            } else if (currentChatMode === 'group' && currentGroup) {
+                url += `&group_id=${currentGroup.id}`;
+            }
+            
+            const data = await apiRequest(url);
             return data.messages || [];
         }
-        async function fetchRecentMessages() { const data = await apiRequest('/messages/recent'); return data.messages || []; }
+        async function fetchRecentMessages() { 
+            let url = '/messages/recent';
+            
+            // Add query parameters based on current chat mode
+            if (currentChatMode === 'dm' && currentRecipient) {
+                url += `?recipient_id=${currentRecipient.id}`;
+            } else if (currentChatMode === 'group' && currentGroup) {
+                url += `?group_id=${currentGroup.id}`;
+            }
+            
+            const data = await apiRequest(url); 
+            return data.messages || []; 
+        }
         async function loadUsers() {
             try { const data = await apiRequest('/users'); usersList = data.users || []; populateUserSelect(); } catch (err) { console.error('Failed to load users:', err); }
         }
@@ -1614,6 +1795,14 @@
                 // Start status tracking
                 startHeartbeat();
                 resetAwayTimer();
+                
+                // Load user groups and set up sidebar
+                loadUserGroups().then(() => {
+                    renderGroupsList();
+                });
+                
+                // Set initial chat mode
+                switchChatMode('global');
             }
             loadUsers(); loadMessages(); startPolling(); messageInput.focus(); markAsSeen();
             if (window.PinSystem && !PinSystem.isUnlocked()) {
@@ -2341,6 +2530,15 @@
         if (profilePicBtn) profilePicBtn.addEventListener('click', showProfilePicModal);
         if (profilePicModalClose) profilePicModalClose.addEventListener('click', hideProfilePicModal);
         if (removeProfilePicBtn) removeProfilePicBtn.addEventListener('click', removeProfilePicture);
+
+        // Sidebar navigation event listeners
+        const globalChatBtn = document.getElementById('global-chat-btn');
+        const dmsBtn = document.getElementById('dms-btn');
+        const groupsBtn = document.getElementById('groups-btn');
+        
+        if (globalChatBtn) globalChatBtn.addEventListener('click', () => switchChatMode('global'));
+        if (dmsBtn) dmsBtn.addEventListener('click', () => switchChatMode('dm'));
+        if (groupsBtn) groupsBtn.addEventListener('click', () => switchChatMode('group'));
 
         // Group chat event listeners
         const createGroupBtn = document.getElementById('create-group-btn');
